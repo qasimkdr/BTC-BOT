@@ -65,7 +65,6 @@ const ChartCard = () => {
           chart.addSeries(
             CandlestickSeries
           );
-        //   console.log(candleSeries);
 
         seriesRef.current =
           candleSeries;
@@ -103,55 +102,6 @@ const ChartCard = () => {
         candleSeries.setData(
           chartData
         );
-
-        const signalResponse =
-  await api.get(
-    "/signals/history"
-  );
-
-const markers =
-  signalResponse.data
-    .filter(
-      (signal) =>
-        signal.signal !==
-        "NONE"
-    )
-    .map(
-      (signal) => ({
-        time:
-          Math.floor(
-            new Date(
-              signal.createdAt
-            ).getTime() /
-              1000
-          ),
-
-        position:
-          signal.signal ===
-          "BUY"
-            ? "belowBar"
-            : "aboveBar",
-
-        color:
-          signal.signal ===
-          "BUY"
-            ? "#22c55e"
-            : "#ef4444",
-
-        shape:
-          signal.signal ===
-          "BUY"
-            ? "arrowUp"
-            : "arrowDown",
-
-        text:
-          signal.signal,
-      })
-    );
-
-candleSeries.setMarkers(
-  markers
-);
 
         chart
           .timeScale()
