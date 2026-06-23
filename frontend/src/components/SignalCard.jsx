@@ -22,7 +22,7 @@ const SignalCard = () => {
       try {
         const res =
           await api.get(
-            "/signals/current"
+            "/signals/test"
           );
 
         setSignal(
