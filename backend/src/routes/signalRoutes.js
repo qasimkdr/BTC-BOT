@@ -3,10 +3,16 @@ import express from "express";
 import {
   testSignal,
   getSignalHistory,
+  getCurrentSignal,
 } from "../controllers/signalController.js";
 
 const router =
   express.Router();
+
+router.get(
+  "/current",
+  getCurrentSignal
+);
 
 router.get(
   "/test",
@@ -16,11 +22,6 @@ router.get(
 router.get(
   "/history",
   getSignalHistory
-);
-
-router.get(
-  "/current",
-  getCurrentSignal
 );
 
 export default router;
