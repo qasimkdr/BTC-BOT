@@ -6,24 +6,21 @@ const PriceCard = () => {
     useState(0);
 
   useEffect(() => {
-  socket.on("connect", () => {
-    console.log("SOCKET CONNECTED", socket.id);
-  });
+    socket.on(
+      "price-update",
+      (data) => {
+        setPrice(
+          data.price
+        );
+      }
+    );
 
-  socket.on("price-update", (data) => {
-    console.log("PRICE RECEIVED", data);
-
-    setPrice(data.price);
-  });
-
-  socket.on("connect_error", (err) => {
-    console.log("SOCKET ERROR", err.message);
-  });
-
-  return () => {
-    socket.off("price-update");
-  };
-}, []);
+    return () => {
+      socket.off(
+        "price-update"
+      );
+    };
+  }, []);
 
   return (
     <div className="bg-zinc-900 p-5 rounded-xl border border-zinc-800">
