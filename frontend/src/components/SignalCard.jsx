@@ -69,7 +69,7 @@ const SignalCard = () => {
     const interval =
       setInterval(
         loadSignal,
-        1000
+        15000
       );
 
     socket.on(

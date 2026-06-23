@@ -163,3 +163,21 @@ export const getSignalHistory =
       });
     }
   };
+
+  export const getCurrentSignal =
+  async (req, res) => {
+    try {
+      const signal =
+        await Signal.findOne()
+          .sort({
+            createdAt: -1,
+          });
+
+      res.json(signal);
+    } catch (error) {
+      res.status(500).json({
+        message:
+          error.message,
+      });
+    }
+  };

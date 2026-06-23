@@ -8,15 +8,19 @@ import {
 const router =
   express.Router();
 
-
 router.get(
-  "/current",
+  "/test",
   testSignal
 );
 
 router.get(
   "/history",
   getSignalHistory
+);
+
+router.get(
+  "/current",
+  getCurrentSignal
 );
 
 export default router;
