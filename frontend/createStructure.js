@@ -74,7 +74,7 @@ export default TradesTable;
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: "https://btc-bot-lqzr.onrender.com/api",
 });
 
 export default api;
@@ -84,7 +84,7 @@ export default api;
 import { io } from "socket.io-client";
 
 const socket = io(
-  "http://localhost:5000"
+  "https://btc-bot-lqzr.onrender.com"
 );
 
 export default socket;
