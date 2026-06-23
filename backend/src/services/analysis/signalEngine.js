@@ -121,10 +121,10 @@ const signalEngine = (
 
   // BUY
   if (
+  score >= 50 &&
   structure.trend === "bullish" &&
   bullishEMA &&
   volume.volumeSpike &&
-  session.validTradingTime &&
   (
     !liquidity.detected ||
     liquidity.type === "bullish"
@@ -156,10 +156,10 @@ const signalEngine = (
 
   // SELL
   else if (
+  score >= 50 &&
   structure.trend === "bearish" &&
   bearishEMA &&
   volume.volumeSpike &&
-  session.validTradingTime &&
   (
     !liquidity.detected ||
     liquidity.type === "bearish"

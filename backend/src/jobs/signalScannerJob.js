@@ -45,14 +45,14 @@ const signalScannerJob = async () => {
     );
 
     if (
-      result.signal ===
-      "NONE"
-    ) {
-      console.log(
-        "❌ No valid signal"
-      );
-      return;
-    }
+  result.signal === "NONE" ||
+  result.score < 50
+) {
+  console.log(
+    "❌ Signal Rejected"
+  );
+  return;
+}
 
     const current =
       candles[
