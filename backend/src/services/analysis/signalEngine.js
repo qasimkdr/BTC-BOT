@@ -86,38 +86,6 @@ const signalEngine = (
   let takeProfit2 =
     null;
 
-  console.log({
-    trend:
-      structure.trend,
-
-    bos:
-      structure.bos,
-
-    choch:
-      structure.choch,
-
-    ema200,
-
-    atr,
-
-    bullishEMA,
-
-    bearishEMA,
-
-    liquidity:
-      liquidity.detected,
-
-    liquidityType:
-      liquidity.type,
-
-    volumeSpike:
-      volume.volumeSpike,
-
-    session:
-      session.validTradingTime,
-
-    score,
-  });
 
   // BUY
   if (
