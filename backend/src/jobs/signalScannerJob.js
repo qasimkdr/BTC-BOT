@@ -24,6 +24,10 @@ const signalScannerJob = async () => {
     const result =
       signalEngine(candles);
 
+      console.log("SIGNAL:", result.signal);
+console.log("SCORE:", result.score);
+console.log("TREND:", result.structure?.trend);
+
     console.log(
       "========================"
     );
@@ -59,7 +63,11 @@ console.log(
   result.score < 50
 ) {
   console.log(
-    "❌ Signal Rejected"
+    "TRADE REJECTED",
+    {
+      signal: result.signal,
+      score: result.score,
+    }
   );
   return;
 }
