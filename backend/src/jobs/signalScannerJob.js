@@ -44,6 +44,16 @@ const signalScannerJob = async () => {
       "========================"
     );
 
+    console.log(
+  "SIGNAL:",
+  result.signal
+);
+
+console.log(
+  "SCORE:",
+  result.score
+);
+
     if (
   result.signal === "NONE" ||
   result.score < 50
