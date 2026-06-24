@@ -7,7 +7,8 @@ export const getTrades =
         await Trade.find()
           .sort({
             createdAt: -1,
-          });
+          })
+          .limit(10);
 
       res.status(200).json(
         trades
