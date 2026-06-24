@@ -10,6 +10,16 @@ app.use(express.json());
 
 import candleRoutes from "./routes/candleRoutes.js";
 
+
+app.get("/", (req, res) => {
+  res.json({
+    status: "online",
+    service: "BTC BOT API",
+    uptime: process.uptime(),
+  });
+});
+
+
 app.use(
   "/api/candles",
   candleRoutes
