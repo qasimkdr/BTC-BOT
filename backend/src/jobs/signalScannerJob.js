@@ -23,7 +23,26 @@ candles.reverse();
     const result =
       signalEngine(candles);
 
-    
+      console.log("=================================");
+console.log(
+  "CANDLE:",
+  new Date(
+    candles[candles.length - 1].openTime
+  ).toLocaleString()
+);
+
+console.log("SIGNAL:", result.signal);
+console.log("SCORE:", result.score);
+
+console.log({
+  trend: result.structure?.trend,
+  bullishEMA: result.reasons?.bullishEMA,
+  bearishEMA: result.reasons?.bearishEMA,
+  volumeSpike: result.reasons?.volumeSpike,
+  liquidity: result.liquidity?.detected,
+  liquidityType: result.liquidity?.type,
+  session: result.session?.validTradingTime,
+});
 
 
     
@@ -32,9 +51,13 @@ candles.reverse();
 
 
     if (
-  result.signal === "NONE" ||
-  result.score < 50
+  result.signal === "NONE"
 ) {
+  console.log(
+    "❌ No trade on this candle"
+  );
+  return;
+} {
   console.log(
     "TRADE REJECTED",
     {
