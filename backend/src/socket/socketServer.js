@@ -14,8 +14,6 @@ export const initializeSocket =
       "connection",
       (socket) => {
         console.log(
-          "Client Connected:",
-          socket.id
         );
 
         socket.emit(
@@ -29,9 +27,7 @@ export const initializeSocket =
           "disconnect",
           () => {
             console.log(
-              "Client Disconnected:",
-              socket.id
-            );
+         );
           }
         );
       }
