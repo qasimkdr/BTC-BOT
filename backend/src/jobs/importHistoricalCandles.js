@@ -6,125 +6,81 @@ import Candle15m from "../models/Candle15m.js";
 
 dotenv.config();
 
-const importCandles = async () => {
+const importLast5Days = async () => {
   try {
     await connectDB();
 
-    const TOTAL_CANDLES = 10000;
-    const LIMIT = 1000;
+    const FIVE_DAYS =
+      5 * 24 * 60 * 60 * 1000;
+
+    const startTime =
+      Date.now() - FIVE_DAYS;
+
+    const response =
+      await axios.get(
+        "https://api.binance.com/api/v3/klines",
+        {
+          params: {
+            symbol: "BTCUSDT",
+            interval: "15m",
+            startTime,
+            limit: 1000,
+          },
+        }
+      );
+
+    const candles =
+      response.data;
 
     let inserted = 0;
+    let skipped = 0;
 
-    let endTime = Date.now();
+    for (const c of candles) {
+      const exists =
+        await Candle15m.findOne({
+          openTime: c[0],
+        });
 
-    while (inserted < TOTAL_CANDLES) {
-      const response =
-        await axios.get(
-          "https://api.binance.com/api/v3/klines",
-          {
-            params: {
-              symbol:
-                "BTCUSDT",
-              interval:
-                "15m",
-              limit: LIMIT,
-              endTime,
-            },
-          }
-        );
-
-      const candles =
-        response.data;
-
-      if (
-        !candles ||
-        candles.length === 0
-      ) {
-        break;
+      if (exists) {
+        skipped++;
+        continue;
       }
 
-      for (const c of candles) {
-        const exists =
-          await Candle15m.findOne(
-            {
-              openTime:
-                c[0],
-            }
-          );
+      await Candle15m.create({
+        symbol: "BTCUSDT",
 
-        if (exists) {
-          continue;
-        }
+        openTime: c[0],
 
-        await Candle15m.create(
-          {
-            symbol:
-              "BTCUSDT",
+        open: Number(c[1]),
 
-            openTime:
-              c[0],
+        high: Number(c[2]),
 
-            open:
-              Number(
-                c[1]
-              ),
+        low: Number(c[3]),
 
-            high:
-              Number(
-                c[2]
-              ),
+        close: Number(c[4]),
 
-            low:
-              Number(
-                c[3]
-              ),
+        volume: Number(c[5]),
 
-            close:
-              Number(
-                c[4]
-              ),
+        closeTime: c[6],
+      });
 
-            volume:
-              Number(
-                c[5]
-              ),
-
-            closeTime:
-              c[6],
-          }
-        );
-
-        inserted++;
-      }
-
-      console.log(
-        `Imported: ${inserted}/${TOTAL_CANDLES}`
-      );
-
-      endTime =
-        candles[0][0] - 1;
-
-      await new Promise(
-        (resolve) =>
-          setTimeout(
-            resolve,
-            300
-          )
-      );
+      inserted++;
     }
 
     console.log(
-      `✅ Finished importing ${inserted} candles`
+      `✅ Inserted: ${inserted}`
+    );
+
+    console.log(
+      `⏭️ Skipped Existing: ${skipped}`
     );
 
     process.exit(0);
   } catch (error) {
-    console.error(
-      error.message
-    );
+    console.error(error);
 
     process.exit(1);
   }
 };
 
-importCandles();
+importLast5Days();

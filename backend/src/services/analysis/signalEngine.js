@@ -6,51 +6,30 @@ import confidenceScore from "./confidenceScore.js";
 import calculateEMA from "./ema.js";
 import calculateATR from "./atr.js";
 
-const signalEngine = (
-  candles
-) => {
-  if (
-    !candles ||
-    candles.length < 250
-  ) {
+const signalEngine = (candles) => {
+  if (!candles || candles.length < 250) {
     return {
       signal: "NONE",
+      score: 0,
     };
   }
 
   const structure =
-    getMarketStructure(
-      candles
-    );
+    getMarketStructure(candles);
 
   const liquidity =
-    detectLiquidityGrab(
-      candles
-    );
+    detectLiquidityGrab(candles);
 
   const volume =
-    volumeAnalysis(
-      candles
-    );
+    volumeAnalysis(candles);
 
   const current =
-    candles[
-      candles.length - 1
-    ];
+    candles[candles.length - 1];
 
   const session =
     sessionFilter(
       current.openTime
     );
-
-  const score =
-    confidenceScore({
-      trend:
-        structure.trend,
-      liquidity,
-      volume,
-      session,
-    });
 
   const ema200 =
     calculateEMA(
@@ -59,48 +38,58 @@ const signalEngine = (
     );
 
   const atr =
-    calculateATR(
-      candles
-    );
+    calculateATR(candles);
 
   const bullishEMA =
-    current.close >
-    ema200;
+    current.close > ema200;
 
   const bearishEMA =
-    current.close <
-    ema200;
+    current.close < ema200;
 
-  let signal =
-    "NONE";
+  const score =
+    confidenceScore({
+      trend: structure.trend,
+      liquidity,
+      volume,
+      session,
+    });
 
-  let entry =
-    null;
+  let signal = "NONE";
 
-  let stopLoss =
-    null;
+  let entry = null;
+  let stopLoss = null;
+  let takeProfit1 = null;
+  let takeProfit2 = null;
 
-  let takeProfit1 =
-    null;
+  const canBuy =
+    score >= 50 &&
+    session.validTradingTime &&
+    structure.trend ===
+      "bullish" &&
+    bullishEMA &&
+    volume.volumeSpike &&
+    (
+      !liquidity.detected ||
+      liquidity.type ===
+        "bullish"
+    );
 
-  let takeProfit2 =
-    null;
+  const canSell =
+    score >= 50 &&
+    session.validTradingTime &&
+    structure.trend ===
+      "bearish" &&
+    bearishEMA &&
+    volume.volumeSpike &&
+    (
+      !liquidity.detected ||
+      liquidity.type ===
+        "bearish"
+    );
 
-
-  // BUY
-  if (
-  score >= 50 &&
-  structure.trend === "bullish" &&
-  bullishEMA &&
-  volume.volumeSpike &&
-  (
-    !liquidity.detected ||
-    liquidity.type === "bullish"
-  )
-) {
+  if (canBuy) {
     signal = "BUY";
 
-    // RETEST ENTRY
     entry =
       current.close -
       atr * 0.3;
@@ -110,32 +99,18 @@ const signalEngine = (
       atr * 2.5;
 
     const risk =
-      entry -
-      stopLoss;
+      entry - stopLoss;
 
     takeProfit1 =
-      entry +
-      risk;
+      entry + risk;
 
     takeProfit2 =
-      entry +
-      risk * 2;
+      entry + risk * 2;
   }
 
-  // SELL
-  else if (
-  score >= 50 &&
-  structure.trend === "bearish" &&
-  bearishEMA &&
-  volume.volumeSpike &&
-  (
-    !liquidity.detected ||
-    liquidity.type === "bearish"
-  )
-) {
+  else if (canSell) {
     signal = "SELL";
 
-    // RETEST ENTRY
     entry =
       current.close +
       atr * 0.3;
@@ -145,66 +120,68 @@ const signalEngine = (
       atr * 2.5;
 
     const risk =
-      Math.abs(
-        stopLoss -
-          entry
-      );
+      stopLoss - entry;
 
     takeProfit1 =
-      entry -
-      risk;
+      entry - risk;
 
     takeProfit2 =
-      entry -
-      risk * 2;
+      entry - risk * 2;
   }
 
   return {
-  signal,
+    signal,
 
-  score,
+    score,
 
-  entry,
+    entry,
 
-  stopLoss,
+    stopLoss,
 
-  takeProfit1,
+    takeProfit1,
 
-  takeProfit2,
+    takeProfit2,
 
-  structure,
+    structure,
 
-  liquidity,
+    liquidity,
 
-  volume,
+    volume,
 
-  session,
+    session,
 
-  ema200,
+    ema200,
 
-  atr,
+    atr,
 
-  reasons: {
-    bullishEMA,
+    reasons: {
+      trend:
+        structure.trend,
 
-    bearishEMA,
+      bullishEMA,
 
-    liquidity:
-      liquidity.detected,
+      bearishEMA,
 
-    liquidityType:
-      liquidity.type,
+      liquidity:
+        liquidity.detected,
 
-    volumeSpike:
-      volume.volumeSpike,
+      liquidityType:
+        liquidity.type,
 
-    volumeRatio:
-      volume.ratio,
+      volumeSpike:
+        volume.volumeSpike,
 
-    session:
-      session.validTradingTime,
-  },
-};
+      volumeRatio:
+        volume.ratio,
+
+      session:
+        session.validTradingTime,
+
+      canBuy,
+
+      canSell,
+    },
+  };
 };
 
 export default signalEngine;

@@ -32,11 +32,8 @@ export const getActiveTrade =
           })
           .limit(5);
 
-      console.log(
-        "LATEST TRADES:"
-      );
+      
 
-      console.log(trades);
 
       const trade =
         await Trade.findOne({
@@ -45,11 +42,8 @@ export const getActiveTrade =
           createdAt: -1,
         });
 
-      console.log(
-        "ACTIVE TRADE:"
-      );
+    
 
-      console.log(trade);
 
       res.status(200).json(
         trade

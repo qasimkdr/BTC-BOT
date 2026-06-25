@@ -28,35 +28,13 @@ const signalScannerJob = async () => {
 console.log("SCORE:", result.score);
 console.log("TREND:", result.structure?.trend);
 
-    console.log(
-      "========================"
-    );
+    
 
-    console.log(
-      "SIGNAL ENGINE RESULT"
-    );
 
-    console.log(
-      JSON.stringify(
-        result,
-        null,
-        2
-      )
-    );
+    
 
-    console.log(
-      "========================"
-    );
+    
 
-    console.log(
-  "SIGNAL:",
-  result.signal
-);
-
-console.log(
-  "SCORE:",
-  result.score
-);
 
     if (
   result.signal === "NONE" ||
