@@ -130,11 +130,13 @@ io.emit(
           if (!kline.x) {
 
   const candles =
-    await Candle15m.find()
-      .sort({
-        openTime: 1,
-      })
-      .limit(500);
+  await Candle15m.find()
+    .sort({
+      openTime: -1,
+    })
+    .limit(500);
+
+candles.reverse();
 
   const liveCandle = {
     symbol: kline.s,

@@ -7,12 +7,11 @@ import createTrade from "../services/trade/createTrade.js";
 
 const signalScannerJob = async () => {
   try {
-    const candles =
-      await Candle15m.find()
-        .sort({
-          openTime: 1,
-        })
-        .limit(500);
+    const candles = await Candle15m.find()
+  .sort({ openTime: -1 })
+  .limit(500);
+
+candles.reverse();
 
     if (!candles.length) {
       console.log(
@@ -23,10 +22,6 @@ const signalScannerJob = async () => {
 
     const result =
       signalEngine(candles);
-
-      console.log("SIGNAL:", result.signal);
-console.log("SCORE:", result.score);
-console.log("TREND:", result.structure?.trend);
 
     
 
