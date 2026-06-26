@@ -25,9 +25,9 @@ const Dashboard = () => {
       <div className="mb-6 mt-4">
         <SignalCard />
       </div>
-      <div className="mb-6 mt-4">
+      {/* <div className="mb-6 mt-4">
         <PressureCard />
-      </div>
+      </div> */}
 
 
 
