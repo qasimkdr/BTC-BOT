@@ -228,6 +228,9 @@ if (totalPressure > 0) {
 
     score,
 
+    currentPrice:
+    current.close,
+
     buyPressure,
 
     sellPressure,

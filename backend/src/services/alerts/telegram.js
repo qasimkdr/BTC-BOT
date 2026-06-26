@@ -10,9 +10,9 @@ const sendTelegramAlert = async (
       process.env.TELEGRAM_BOT_TOKEN;
 
     const chatIds = [
-  process.env.TELEGRAM_CHAT_ID,
-  // process.env.TELEGRAM_CHAT_ID_2,
-].filter(Boolean);
+      process.env.TELEGRAM_CHAT_ID,
+      // process.env.TELEGRAM_CHAT_ID_2,
+    ].filter(Boolean);
 
     if (!token) {
       throw new Error(
@@ -20,9 +20,9 @@ const sendTelegramAlert = async (
       );
     }
 
-    if (!chatId) {
+    if (chatIds.length === 0) {
       throw new Error(
-        "TELEGRAM_CHAT_ID missing"
+        "No TELEGRAM_CHAT_ID configured"
       );
     }
 
@@ -62,36 +62,50 @@ const sendTelegramAlert = async (
     }
 
     const message = `
+🤖 BTC AI SIGNAL BOT
+
+━━━━━━━━━━━━━━━━━━━━━━
+
 ${title}
 
-Pair:
+📈 Pair:
 BTCUSDT
 
-Signal:
+🎯 Signal:
 ${signal.signal}
 
-Score:
-${signal.score}
+⭐ Confidence:
+${signal.score}%
 
-Current Price:
+🟢 Buy Pressure:
+${signal.buyPressure}%
+
+🔴 Sell Pressure:
+${signal.sellPressure}%
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 Current Price:
 ${signal.currentPrice ?? "N/A"}
 
-Entry:
-${signal.entry}
+🎯 Entry:
+${signal.entry ?? "Waiting..."}
 
-SL:
-${signal.stopLoss}
+🛑 Stop Loss:
+${signal.stopLoss ?? "-"}
 
-TP1:
-${signal.takeProfit1}
+🥇 Take Profit 1:
+${signal.takeProfit1 ?? "-"}
 
-TP2:
-${signal.takeProfit2}
+🥈 Take Profit 2:
+${signal.takeProfit2 ?? "-"}
 
-Trend:
+━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Trend:
 ${signal.structure?.trend ?? "N/A"}
 
-EMA:
+📈 EMA:
 ${
   signal.reasons
     ?.bullishEMA ||
@@ -101,7 +115,7 @@ ${
     : "❌"
 }
 
-Volume:
+📦 Volume Spike:
 ${
   signal.volume
     ?.volumeSpike
@@ -109,7 +123,7 @@ ${
     : "❌"
 }
 
-Liquidity:
+💧 Liquidity:
 ${
   signal.liquidity
     ?.detected
@@ -117,52 +131,47 @@ ${
     : "❌"
 }
 
-Session:
+🕒 Trading Session:
 ${
   signal.session
     ?.validTradingTime
-    ? "✅"
-    : "❌"
+    ? "✅ Active"
+    : "❌ Closed"
 }
 
-Time Remaining:
-${
-  remainingSeconds ??
-  "N/A"
-} sec
+━━━━━━━━━━━━━━━━━━━━━━
+
+⏳ Time Remaining:
+${remainingSeconds ?? "N/A"} sec
+
+⚠️ This is an AI-generated trading signal.
+Always manage your risk.
 `;
 
     for (const chatId of chatIds) {
-  try {
-    const response =
-      await bot.sendMessage(
-        chatId,
-        message
-      );
+      try {
+        const response =
+          await bot.sendMessage(
+            chatId,
+            message
+          );
 
-    console.log(
-      `✅ Telegram ${alertType} sent to ${chatId}`,
-      response.message_id
-    );
-  } catch (error) {
-    console.error(
-      `❌ Failed to send to ${chatId}`
-    );
+        console.log(
+          `✅ Telegram ${alertType} sent to ${chatId}`,
+          response.message_id
+        );
+      } catch (error) {
+        console.error(
+          `❌ Failed to send to ${chatId}`
+        );
 
-    console.error(
-      error.message
-    );
-  }
-}
+        console.error(
+          error.message
+        );
+      }
+    }
 
-return true;
-
-    console.log(
-      `✅ Telegram ${alertType} Sent`,
-      response.message_id
-    );
-
-    return response;
+    return true;
   } catch (error) {
     console.error(
       "Telegram Error:"

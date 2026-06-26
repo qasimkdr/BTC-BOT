@@ -24,6 +24,7 @@ const signalScannerJob = async () => {
       signalEngine(candles);
 
     console.log("=================================");
+
     console.log(
       "CANDLE:",
       new Date(
@@ -101,6 +102,15 @@ const signalScannerJob = async () => {
         score:
           result.score,
 
+        buyPressure:
+          result.buyPressure,
+
+        sellPressure:
+          result.sellPressure,
+
+        currentPrice:
+          current.close,
+
         entry:
           result.entry,
 
@@ -129,9 +139,11 @@ const signalScannerJob = async () => {
       savedSignal
     );
 
-    await createTrade(
-      result
-    );
+    await createTrade({
+      ...result,
+      currentPrice:
+        current.close,
+    });
 
     console.log(
       "✅ Trade Created"
