@@ -18,9 +18,7 @@ const PressureCard = () => {
             res.data
           );
         } catch (error) {
-          console.error(
-            error
-          );
+          console.error(error);
         }
       };
 
@@ -40,47 +38,49 @@ const PressureCard = () => {
 
   if (!pressure) {
     return (
-      <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6">
+      <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
         Loading...
       </div>
     );
   }
 
   const buyDominant =
-    pressure.buyPressure >
+    pressure.buyPressure >=
     pressure.sellPressure;
 
   return (
-    <div className="bg-zinc-900/80 backdrop-blur-xl rounded-2xl border border-zinc-800 p-6 shadow-xl">
+    <div className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/70 backdrop-blur-xl shadow-2xl p-6">
 
-      <h2 className="text-2xl font-bold mb-6 text-center">
+      {/* Glow */}
+
+      <div className="absolute -top-10 -left-10 w-40 h-40 bg-green-500/10 rounded-full blur-3xl" />
+
+      <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-red-500/10 rounded-full blur-3xl" />
+
+      <h2 className="text-2xl font-bold text-center mb-8">
         Market Pressure
       </h2>
 
       {/* BUY */}
 
-      <div className="mb-6">
+      <div className="mb-8">
 
         <div className="flex justify-between mb-2">
 
-          <span className="font-semibold text-green-400">
+          <span className="text-green-400 font-bold">
             BUY
           </span>
 
-          <span className="font-bold text-green-300">
+          <span className="text-green-300 font-bold text-lg">
             {pressure.buyPressure}%
           </span>
 
         </div>
 
-        <div className="h-4 rounded-full bg-zinc-800 overflow-hidden">
+        <div className="h-5 bg-zinc-800 rounded-full overflow-hidden">
 
           <div
-            className={`h-full rounded-full transition-all duration-700 ${
-              buyDominant
-                ? "bg-green-400 shadow-[0_0_20px_#22c55e] animate-pulse"
-                : "bg-green-500"
-            }`}
+            className="h-full rounded-full bg-gradient-to-r from-green-600 to-green-400 shadow-[0_0_20px_#22c55e] transition-all duration-700 ease-in-out"
             style={{
               width: `${pressure.buyPressure}%`,
             }}
@@ -96,24 +96,20 @@ const PressureCard = () => {
 
         <div className="flex justify-between mb-2">
 
-          <span className="font-semibold text-red-400">
+          <span className="text-red-400 font-bold">
             SELL
           </span>
 
-          <span className="font-bold text-red-300">
+          <span className="text-red-300 font-bold text-lg">
             {pressure.sellPressure}%
           </span>
 
         </div>
 
-        <div className="h-4 rounded-full bg-zinc-800 overflow-hidden">
+        <div className="h-5 bg-zinc-800 rounded-full overflow-hidden">
 
           <div
-            className={`h-full rounded-full transition-all duration-700 ${
-              !buyDominant
-                ? "bg-red-400 shadow-[0_0_20px_#ef4444] animate-pulse"
-                : "bg-red-500"
-            }`}
+            className="h-full rounded-full bg-gradient-to-r from-red-600 to-red-400 shadow-[0_0_20px_#ef4444] transition-all duration-700 ease-in-out"
             style={{
               width: `${pressure.sellPressure}%`,
             }}
@@ -123,13 +119,19 @@ const PressureCard = () => {
 
       </div>
 
-      <div className="mt-8 flex justify-center">
+      {/* Divider */}
+
+      <div className="my-8 border-t border-zinc-800" />
+
+      {/* Bias */}
+
+      <div className="flex justify-center">
 
         <div
-          className={`px-5 py-2 rounded-full font-bold tracking-wide ${
+          className={`px-6 py-3 rounded-full font-bold tracking-wider transition-all duration-500 ${
             buyDominant
-              ? "bg-green-900 text-green-300 border border-green-500 shadow-[0_0_20px_#22c55e]"
-              : "bg-red-900 text-red-300 border border-red-500 shadow-[0_0_20px_#ef4444]"
+              ? "bg-green-500/20 text-green-300 border border-green-500 shadow-[0_0_25px_#22c55e]"
+              : "bg-red-500/20 text-red-300 border border-red-500 shadow-[0_0_25px_#ef4444]"
           }`}
         >
           {buyDominant

@@ -57,60 +57,75 @@ const signalEngine = (candles) => {
     });
 
   // =========================
-  // MARKET PRESSURE
-  // =========================
+// MARKET PRESSURE (DISPLAY ONLY)
+// =========================
 
-  let buyPressure = 0;
+let rawBuyPressure = 0;
 
-  let sellPressure = 0;
+let rawSellPressure = 0;
 
-  // Trend
-  if (structure.trend === "bullish")
-    buyPressure += 30;
+// Trend
+if (structure.trend === "bullish")
+  rawBuyPressure += 30;
 
-  if (structure.trend === "bearish")
-    sellPressure += 30;
+if (structure.trend === "bearish")
+  rawSellPressure += 30;
 
-  // EMA
-  if (bullishEMA)
-    buyPressure += 20;
+// EMA
+if (bullishEMA)
+  rawBuyPressure += 20;
 
-  if (bearishEMA)
-    sellPressure += 20;
+if (bearishEMA)
+  rawSellPressure += 20;
 
-  // Liquidity
-  if (
-    liquidity.detected &&
-    liquidity.type ===
-      "bullish"
-  ) {
-    buyPressure += 30;
-  }
+// Liquidity
+if (
+  liquidity.detected &&
+  liquidity.type === "bullish"
+) {
+  rawBuyPressure += 30;
+}
 
-  if (
-    liquidity.detected &&
-    liquidity.type ===
-      "bearish"
-  ) {
-    sellPressure += 30;
-  }
+if (
+  liquidity.detected &&
+  liquidity.type === "bearish"
+) {
+  rawSellPressure += 30;
+}
 
-  // Neutral liquidity
-  if (
-    !liquidity.detected
-  ) {
-    buyPressure += 15;
-    sellPressure += 15;
-  }
+// Neutral liquidity
+if (!liquidity.detected) {
+  rawBuyPressure += 15;
+  rawSellPressure += 15;
+}
 
-  // Volume
-  if (
-    volume.volumeSpike
-  ) {
-    buyPressure += 20;
-    sellPressure += 20;
-  }
+// Volume
+if (volume.volumeSpike) {
+  rawBuyPressure += 20;
+  rawSellPressure += 20;
+}
 
+// Normalize ONLY for UI
+const totalPressure =
+  rawBuyPressure +
+  rawSellPressure;
+
+let buyPressure = 50;
+
+let sellPressure = 50;
+
+if (totalPressure > 0) {
+  buyPressure = Math.round(
+    (rawBuyPressure /
+      totalPressure) *
+      100
+  );
+
+  sellPressure =
+    100 - buyPressure;
+}
+
+// =========================
   // Keep values between 0-100
   buyPressure = Math.min(
     buyPressure,
