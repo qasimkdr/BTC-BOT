@@ -8,10 +8,10 @@ import createTrade from "../services/trade/createTrade.js";
 const signalScannerJob = async () => {
   try {
     const candles = await Candle15m.find()
-  .sort({ openTime: -1 })
-  .limit(500);
+      .sort({ openTime: -1 })
+      .limit(500);
 
-candles.reverse();
+    candles.reverse();
 
     if (!candles.length) {
       console.log(
@@ -23,50 +23,55 @@ candles.reverse();
     const result =
       signalEngine(candles);
 
-      console.log("=================================");
-console.log(
-  "CANDLE:",
-  new Date(
-    candles[candles.length - 1].openTime
-  ).toLocaleString()
-);
+    console.log("=================================");
+    console.log(
+      "CANDLE:",
+      new Date(
+        candles[candles.length - 1].openTime
+      ).toLocaleString()
+    );
 
-console.log("SIGNAL:", result.signal);
-console.log("SCORE:", result.score);
+    console.log(
+      "SIGNAL:",
+      result.signal
+    );
 
-console.log({
-  trend: result.structure?.trend,
-  bullishEMA: result.reasons?.bullishEMA,
-  bearishEMA: result.reasons?.bearishEMA,
-  volumeSpike: result.reasons?.volumeSpike,
-  liquidity: result.liquidity?.detected,
-  liquidityType: result.liquidity?.type,
-  session: result.session?.validTradingTime,
-});
+    console.log(
+      "SCORE:",
+      result.score
+    );
 
+    console.log({
+      trend:
+        result.structure?.trend,
 
-    
+      bullishEMA:
+        result.reasons?.bullishEMA,
 
-    
+      bearishEMA:
+        result.reasons?.bearishEMA,
 
+      volumeSpike:
+        result.reasons?.volumeSpike,
+
+      liquidity:
+        result.liquidity?.detected,
+
+      liquidityType:
+        result.liquidity?.type,
+
+      session:
+        result.session?.validTradingTime,
+    });
 
     if (
-  result.signal === "NONE"
-) {
-  console.log(
-    "❌ No trade on this candle"
-  );
-  return;
-} {
-  console.log(
-    "TRADE REJECTED",
-    {
-      signal: result.signal,
-      score: result.score,
+      result.signal === "NONE"
+    ) {
+      console.log(
+        "❌ No trade on this candle"
+      );
+      return;
     }
-  );
-  return;
-}
 
     const current =
       candles[
