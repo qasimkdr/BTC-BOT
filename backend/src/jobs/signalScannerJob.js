@@ -1,5 +1,6 @@
 import Candle15m from "../models/Candle15m.js";
 import Signal from "../models/Signal.js";
+import Trade from "../models/Trade.js";
 
 import signalEngine from "../services/analysis/signalEngine.js";
 
@@ -78,6 +79,24 @@ const signalScannerJob = async () => {
       candles[
         candles.length - 1
       ];
+
+    // ===========================
+    // DON'T OPEN MULTIPLE TRADES
+    // ===========================
+
+    const activeTrade =
+      await Trade.findOne({
+        status: "OPEN",
+      });
+
+    if (activeTrade) {
+      console.log(
+        "⚠️ Active trade exists. Skipping signal."
+      );
+      return;
+    }
+
+    // ===========================
 
     const existingSignal =
       await Signal.findOne({
