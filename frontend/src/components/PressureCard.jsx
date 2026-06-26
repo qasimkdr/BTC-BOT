@@ -27,7 +27,7 @@ const PressureCard = () => {
     const interval =
       setInterval(
         loadPressure,
-        5000
+        60000
       );
 
     return () =>
