@@ -9,13 +9,13 @@ export const testSignal = async (
 ) => {
   try {
     const candles =
-(
-  await Candle15m.find()
-    .sort({
-      openTime: -1,
-    })
-    .limit(500)
-).reverse();
+      (
+        await Candle15m.find()
+          .sort({
+            openTime: -1,
+          })
+          .limit(500)
+      ).reverse();
 
     const result =
       signalEngine(candles);
@@ -26,6 +26,12 @@ export const testSignal = async (
 
       score:
         result.score,
+
+      buyPressure:
+        result.buyPressure,
+
+      sellPressure:
+        result.sellPressure,
 
       currentPrice:
         candles[
