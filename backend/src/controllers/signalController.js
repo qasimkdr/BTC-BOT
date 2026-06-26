@@ -24,6 +24,12 @@ export const testSignal = async (
       score:
         result.score,
 
+      buyPressure:
+        result.buyPressure,
+
+      sellPressure:
+        result.sellPressure,
+
       currentPrice:
         candles[
           candles.length - 1

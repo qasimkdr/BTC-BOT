@@ -11,6 +11,8 @@ const signalEngine = (candles) => {
     return {
       signal: "NONE",
       score: 0,
+      buyPressure: 0,
+      sellPressure: 0,
     };
   }
 
@@ -54,11 +56,82 @@ const signalEngine = (candles) => {
       session,
     });
 
+  // =========================
+  // MARKET PRESSURE
+  // =========================
+
+  let buyPressure = 0;
+
+  let sellPressure = 0;
+
+  // Trend
+  if (structure.trend === "bullish")
+    buyPressure += 30;
+
+  if (structure.trend === "bearish")
+    sellPressure += 30;
+
+  // EMA
+  if (bullishEMA)
+    buyPressure += 20;
+
+  if (bearishEMA)
+    sellPressure += 20;
+
+  // Liquidity
+  if (
+    liquidity.detected &&
+    liquidity.type ===
+      "bullish"
+  ) {
+    buyPressure += 30;
+  }
+
+  if (
+    liquidity.detected &&
+    liquidity.type ===
+      "bearish"
+  ) {
+    sellPressure += 30;
+  }
+
+  // Neutral liquidity
+  if (
+    !liquidity.detected
+  ) {
+    buyPressure += 15;
+    sellPressure += 15;
+  }
+
+  // Volume
+  if (
+    volume.volumeSpike
+  ) {
+    buyPressure += 20;
+    sellPressure += 20;
+  }
+
+  // Keep values between 0-100
+  buyPressure = Math.min(
+    buyPressure,
+    100
+  );
+
+  sellPressure = Math.min(
+    sellPressure,
+    100
+  );
+
+  // =========================
+
   let signal = "NONE";
 
   let entry = null;
+
   let stopLoss = null;
+
   let takeProfit1 = null;
+
   let takeProfit2 = null;
 
   const canBuy =
@@ -99,13 +172,16 @@ const signalEngine = (candles) => {
       atr * 2.5;
 
     const risk =
-      entry - stopLoss;
+      entry -
+      stopLoss;
 
     takeProfit1 =
-      entry + risk;
+      entry +
+      risk;
 
     takeProfit2 =
-      entry + risk * 2;
+      entry +
+      risk * 2;
   }
 
   else if (canSell) {
@@ -120,19 +196,26 @@ const signalEngine = (candles) => {
       atr * 2.5;
 
     const risk =
-      stopLoss - entry;
+      stopLoss -
+      entry;
 
     takeProfit1 =
-      entry - risk;
+      entry -
+      risk;
 
     takeProfit2 =
-      entry - risk * 2;
+      entry -
+      risk * 2;
   }
 
   return {
     signal,
 
     score,
+
+    buyPressure,
+
+    sellPressure,
 
     entry,
 

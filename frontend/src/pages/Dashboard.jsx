@@ -4,6 +4,7 @@ import StatsCard from "../components/StatsCard";
 import TradesTable from "../components/TradesTable";
 import ChartCard from "../components/ChartCard";
 import ActiveTradeCard from "../components/ActiveTradeCard";
+import PressureCard from "../components/PressureCard";
 
 const Dashboard = () => {
   return (
@@ -23,6 +24,9 @@ const Dashboard = () => {
       {/* Full Width Signal */}
       <div className="mb-6 mt-4">
         <SignalCard />
+      </div>
+      <div className="mb-6 mt-4">
+        <PressureCard />
       </div>
 
 
