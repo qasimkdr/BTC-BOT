@@ -9,10 +9,13 @@ export const testSignal = async (
 ) => {
   try {
     const candles =
-      await Candle15m.find()
-        .sort({
-          openTime: 1,
-        });
+(
+  await Candle15m.find()
+    .sort({
+      openTime: -1,
+    })
+    .limit(500)
+).reverse();
 
     const result =
       signalEngine(candles);
