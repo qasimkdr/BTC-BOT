@@ -9,8 +9,10 @@ const sendTelegramAlert = async (
     const token =
       process.env.TELEGRAM_BOT_TOKEN;
 
-    const chatId =
-      process.env.TELEGRAM_CHAT_ID;
+    const chatIds = [
+  process.env.TELEGRAM_CHAT_ID,
+  // process.env.TELEGRAM_CHAT_ID_2,
+].filter(Boolean);
 
     if (!token) {
       throw new Error(
@@ -130,11 +132,30 @@ ${
 } sec
 `;
 
+    for (const chatId of chatIds) {
+  try {
     const response =
       await bot.sendMessage(
         chatId,
         message
       );
+
+    console.log(
+      `✅ Telegram ${alertType} sent to ${chatId}`,
+      response.message_id
+    );
+  } catch (error) {
+    console.error(
+      `❌ Failed to send to ${chatId}`
+    );
+
+    console.error(
+      error.message
+    );
+  }
+}
+
+return true;
 
     console.log(
       `✅ Telegram ${alertType} Sent`,
