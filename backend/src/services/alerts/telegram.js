@@ -64,7 +64,7 @@ const sendTelegramAlert = async (
     const message = `
 🤖 BTC AI SIGNAL BOT
 
-━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━
 
 ${title}
 
@@ -83,7 +83,7 @@ ${signal.buyPressure}%
 🔴 Sell Pressure:
 ${signal.sellPressure}%
 
-━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━
 
 💰 Current Price:
 ${signal.currentPrice ?? "N/A"}
@@ -100,7 +100,7 @@ ${signal.takeProfit1 ?? "-"}
 🥈 Take Profit 2:
 ${signal.takeProfit2 ?? "-"}
 
-━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━
 
 📊 Trend:
 ${signal.structure?.trend ?? "N/A"}
@@ -139,7 +139,7 @@ ${
     : "❌ Closed"
 }
 
-━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━
 
 ⏳ Time Remaining:
 ${remainingSeconds ?? "N/A"} sec
