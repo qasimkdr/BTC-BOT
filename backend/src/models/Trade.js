@@ -8,9 +8,14 @@ const tradeSchema =
         required: true,
       },
 
-      score: Number,
+      score: {
+        type: Number,
+        default: 0,
+      },
 
       entry: Number,
+
+      currentPrice: Number,
 
       stopLoss: Number,
 
@@ -18,7 +23,7 @@ const tradeSchema =
 
       takeProfit2: Number,
 
-      // NEW
+      // Risk / Reward
       riskPoints: {
         type: Number,
         default: 0,
@@ -34,7 +39,13 @@ const tradeSchema =
         default: 0,
       },
 
+      // Trade Status
       result: {
+        type: String,
+        default: "OPEN",
+      },
+
+      tradeJourney: {
         type: String,
         default: "OPEN",
       },
@@ -47,6 +58,92 @@ const tradeSchema =
       openTime: Number,
 
       closeTime: Number,
+
+      // ===========================
+      // ANALYTICS
+      // ===========================
+
+      tradeDurationSeconds: {
+        type: Number,
+        default: 0,
+      },
+
+      tp1Hit: {
+        type: Boolean,
+        default: false,
+      },
+
+      tp2Hit: {
+        type: Boolean,
+        default: false,
+      },
+
+      highestProfitPoints: {
+        type: Number,
+        default: 0,
+      },
+
+      lowestDrawdownPoints: {
+        type: Number,
+        default: 0,
+      },
+
+      maxFavorablePrice: {
+        type: Number,
+        default: 0,
+      },
+
+      maxAdversePrice: {
+        type: Number,
+        default: 0,
+      },
+
+      // ===========================
+      // SIGNAL SNAPSHOT
+      // ===========================
+
+      buyPressure: {
+        type: Number,
+        default: 0,
+      },
+
+      sellPressure: {
+        type: Number,
+        default: 0,
+      },
+
+      trend: {
+        type: String,
+      },
+
+      bullishEMA: {
+        type: Boolean,
+        default: false,
+      },
+
+      bearishEMA: {
+        type: Boolean,
+        default: false,
+      },
+
+      volumeSpike: {
+        type: Boolean,
+        default: false,
+      },
+
+      liquidity: {
+        type: Boolean,
+        default: false,
+      },
+
+      liquidityType: {
+        type: String,
+      },
+
+      session: {
+        type: Boolean,
+        default: false,
+      },
     },
     {
       timestamps: true,
