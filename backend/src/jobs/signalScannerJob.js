@@ -67,7 +67,8 @@ const signalScannerJob = async () => {
     });
 
     if (
-      result.signal === "NONE"
+      result.signal ===
+      "NONE"
     ) {
       console.log(
         "❌ No trade on this candle"
@@ -86,12 +87,12 @@ const signalScannerJob = async () => {
 
     const activeTrade =
       await Trade.findOne({
-        status: "OPEN",
+        status: "ACTIVE",
       });
 
     if (activeTrade) {
       console.log(
-        "⚠️ Active trade exists. Skipping signal."
+        `⚠️ Active trade already exists (${activeTrade._id}). Skipping new trade.`
       );
       return;
     }
