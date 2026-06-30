@@ -8,7 +8,7 @@ export const getTrades =
           .sort({
             createdAt: -1,
           })
-          .limit(10);
+          .limit(50);
 
       res.status(200).json(
         trades
