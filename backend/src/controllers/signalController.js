@@ -20,6 +20,72 @@ export const testSignal = async (
     const result =
       signalEngine(candles);
 
+    // BUY CONDITIONS
+    const buyConditions = {
+      Trend:
+        result.structure
+          ?.trend ===
+        "bullish",
+
+      EMA:
+        result.reasons
+          ?.bullishEMA,
+
+      Volume:
+        result.volume
+          ?.volumeSpike,
+
+      Liquidity:
+        !result.liquidity
+          ?.detected ||
+        result.liquidity
+          ?.type ===
+          "bullish",
+
+      Session:
+        result.session
+          ?.validTradingTime,
+    };
+
+    // SELL CONDITIONS
+    const sellConditions = {
+      Trend:
+        result.structure
+          ?.trend ===
+        "bearish",
+
+      EMA:
+        result.reasons
+          ?.bearishEMA,
+
+      Volume:
+        result.volume
+          ?.volumeSpike,
+
+      Liquidity:
+        !result.liquidity
+          ?.detected ||
+        result.liquidity
+          ?.type ===
+          "bearish",
+
+      Session:
+        result.session
+          ?.validTradingTime,
+    };
+
+    const buyScore =
+      Object.values(
+        buyConditions
+      ).filter(Boolean)
+        .length * 20;
+
+    const sellScore =
+      Object.values(
+        sellConditions
+      ).filter(Boolean)
+        .length * 20;
+
     res.status(200).json({
       signal:
         result.signal,
@@ -96,33 +162,13 @@ export const testSignal = async (
         result.reasons
           ?.bearishEMA,
 
-      conditions: {
-        Trend:
-          result.structure
-            ?.trend ===
-            "bullish" ||
-          result.structure
-            ?.trend ===
-            "bearish",
+      buyConditions,
 
-        EMA:
-          result.reasons
-            ?.bullishEMA ||
-          result.reasons
-            ?.bearishEMA,
+      sellConditions,
 
-        Volume:
-          result.reasons
-            ?.volumeSpike,
+      buyScore,
 
-        Liquidity:
-          result.reasons
-            ?.liquidity,
-
-        Session:
-          result.reasons
-            ?.session,
-      },
+      sellScore,
     });
   } catch (error) {
     res.status(500).json({
@@ -153,7 +199,6 @@ export const getSignals =
     }
   };
 
-
 export const getSignalHistory =
   async (req, res) => {
     try {
@@ -173,7 +218,7 @@ export const getSignalHistory =
     }
   };
 
-  export const getCurrentSignal =
+export const getCurrentSignal =
   async (req, res) => {
     try {
       const signal =
