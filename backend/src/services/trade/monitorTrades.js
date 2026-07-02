@@ -1,7 +1,8 @@
 import Trade from "../../models/Trade.js";
 
 const monitorTrades = async (
-  currentPrice
+  currentPrice,
+  io
 ) => {
   try {
     const activeTrades =
@@ -122,6 +123,13 @@ const monitorTrades = async (
 
           await trade.save();
 
+          if (io) {
+            io.emit(
+              "trade-update",
+              trade.toObject()
+            );
+          }
+
           console.log(
             `✅ TP1 HIT ${trade._id}`
           );
@@ -160,6 +168,13 @@ const monitorTrades = async (
 
           await trade.save();
 
+          if (io) {
+            io.emit(
+              "trade-update",
+              trade.toObject()
+            );
+          }
+
           console.log(
             `🚀 TP2 HIT ${trade._id}`
           );
@@ -197,6 +212,13 @@ const monitorTrades = async (
 
           await trade.save();
 
+          if (io) {
+            io.emit(
+              "trade-update",
+              trade.toObject()
+            );
+          }
+
           console.log(
             `❌ SL HIT ${trade._id}`
           );
@@ -204,8 +226,7 @@ const monitorTrades = async (
           continue;
         }
       }
-
-      // =========================
+            // =========================
       // SELL
       // =========================
 
@@ -228,6 +249,13 @@ const monitorTrades = async (
 
           await trade.save();
 
+          if (io) {
+            io.emit(
+              "trade-update",
+              trade.toObject()
+            );
+          }
+
           console.log(
             `✅ TP1 HIT ${trade._id}`
           );
@@ -266,6 +294,13 @@ const monitorTrades = async (
 
           await trade.save();
 
+          if (io) {
+            io.emit(
+              "trade-update",
+              trade.toObject()
+            );
+          }
+
           console.log(
             `🚀 TP2 HIT ${trade._id}`
           );
@@ -303,6 +338,13 @@ const monitorTrades = async (
 
           await trade.save();
 
+          if (io) {
+            io.emit(
+              "trade-update",
+              trade.toObject()
+            );
+          }
+
           console.log(
             `❌ SL HIT ${trade._id}`
           );
@@ -311,8 +353,18 @@ const monitorTrades = async (
         }
       }
 
-      // Save live analytics
+      // =========================
+      // SAVE LIVE ANALYTICS
+      // =========================
+
       await trade.save();
+
+      if (io) {
+        io.emit(
+          "trade-update",
+          trade.toObject()
+        );
+      }
     }
 
   } catch (error) {
