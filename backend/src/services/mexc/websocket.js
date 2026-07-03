@@ -11,13 +11,15 @@ import {
 } from "../../socket/socketServer.js";
 
 import signalEngine from "../analysis/signalEngine.js";
-import sendTelegramAlert from "../alerts/telegram.js"
+import sendTelegramAlert from "../alerts/telegram.js";
 
 let reconnectTimeout;
+
 const alertMemory = {};
 
 const startMexcWebSocket =
   () => {
+
     console.log(
       "Connecting to Binance WebSocket..."
     );
@@ -39,11 +41,22 @@ const startMexcWebSocket =
     ws.on(
       "message",
       async (data) => {
+
+        console.log(
+          "📩 Binance message received"
+        );
+
         try {
+
           const parsed =
             JSON.parse(
               data.toString()
             );
+
+          console.log(
+            "EVENT:",
+            parsed.e
+          );
 
           if (
             parsed.e !==
@@ -60,10 +73,21 @@ const startMexcWebSocket =
               kline.c
             );
 
+          console.log(
+            "💰 LIVE PRICE:",
+            currentPrice
+          );
+
           const io =
             getIO();
 
           if (io) {
+
+            console.log(
+              "📡 Emitting price-update:",
+              currentPrice
+            );
+
             io.emit(
               "price-update",
               {
@@ -79,17 +103,18 @@ const startMexcWebSocket =
             );
 
             const remainingSeconds =
-  Math.floor(
-    (kline.T - Date.now()) /
-      1000
-  );
+              Math.floor(
+                (kline.T -
+                  Date.now()) /
+                  1000
+              );
 
-io.emit(
-  "countdown-update",
-  {
-    remainingSeconds,
-  }
-);
+            io.emit(
+              "countdown-update",
+              {
+                remainingSeconds,
+              }
+            );
 
             io.emit(
               "candle-update",
@@ -126,17 +151,16 @@ io.emit(
           await monitorTrades(
             currentPrice
           );
-
           if (!kline.x) {
 
   const candles =
-  await Candle15m.find()
-    .sort({
-      openTime: -1,
-    })
-    .limit(500);
+    await Candle15m.find()
+      .sort({
+        openTime: -1,
+      })
+      .limit(500);
 
-candles.reverse();
+  candles.reverse();
 
   const liveCandle = {
     symbol: kline.s,
@@ -172,7 +196,17 @@ candles.reverse();
   const candleId =
     kline.t;
 
+  console.log(
+    "⏳ Remaining:",
+    remainingSeconds,
+    "Signal:",
+    signal.signal
+  );
+
+  // =========================
   // 2 MIN ALERT
+  // =========================
+
   if (
     signal.signal !==
       "NONE" &&
@@ -182,6 +216,7 @@ candles.reverse();
       `${candleId}-120`
     ]
   ) {
+
     alertMemory[
       `${candleId}-120`
     ] = true;
@@ -205,7 +240,10 @@ candles.reverse();
     );
   }
 
+  // =========================
   // 1 MIN ALERT
+  // =========================
+
   if (
     signal.signal !==
       "NONE" &&
@@ -215,6 +253,7 @@ candles.reverse();
       `${candleId}-60`
     ]
   ) {
+
     alertMemory[
       `${candleId}-60`
     ] = true;
@@ -238,7 +277,10 @@ candles.reverse();
     );
   }
 
+  // =========================
   // 15 SEC ALERT
+  // =========================
+
   if (
     signal.signal !==
       "NONE" &&
@@ -248,6 +290,7 @@ candles.reverse();
       `${candleId}-15`
     ]
   ) {
+
     alertMemory[
       `${candleId}-15`
     ] = true;
@@ -272,76 +315,84 @@ candles.reverse();
   }
 
   return;
-}
-
-          console.log(
+          }
+                    console.log(
             "🕯️ Candle Closed"
           );
 
           const exists =
-            await Candle15m.findOne(
-              {
-                openTime:
-                  kline.t,
-              }
+            await Candle15m.findOne({
+              openTime:
+                kline.t,
+            });
+
+          if (exists) {
+            console.log(
+              "⚠️ Candle already exists"
             );
 
-          if (
-            exists
-          ) {
             return;
           }
 
-          await Candle15m.create(
-            {
-              symbol:
-                kline.s,
+          await Candle15m.create({
+            symbol:
+              kline.s,
 
-              openTime:
-                kline.t,
+            openTime:
+              kline.t,
 
-              open:
-                Number(
-                  kline.o
-                ),
+            open:
+              Number(
+                kline.o
+              ),
 
-              high:
-                Number(
-                  kline.h
-                ),
+            high:
+              Number(
+                kline.h
+              ),
 
-              low:
-                Number(
-                  kline.l
-                ),
+            low:
+              Number(
+                kline.l
+              ),
 
-              close:
-                Number(
-                  kline.c
-                ),
+            close:
+              Number(
+                kline.c
+              ),
 
-              volume:
-                Number(
-                  kline.v
-                ),
+            volume:
+              Number(
+                kline.v
+              ),
 
-              closeTime:
-                kline.T,
-            }
+            closeTime:
+              kline.T,
+          });
+
+          console.log(
+            "✅ Candle Saved:",
+            new Date(
+              kline.T
+            )
           );
 
           console.log(
-  "✅ Candle Saved:",
-  new Date(kline.T)
-);
+            "🚀 Running Signal Scanner..."
+          );
 
           await signalScannerJob();
-        } catch (
-          error
-        ) {
+
+        } catch (error) {
+
           console.error(
-            error.message
+            "❌ WebSocket Error:"
           );
+
+          console.error(
+            error
+          );
+
         }
       }
     );
@@ -349,6 +400,7 @@ candles.reverse();
     ws.on(
       "close",
       () => {
+
         console.log(
           "❌ WebSocket Closed"
         );
@@ -360,21 +412,32 @@ candles.reverse();
         reconnectTimeout =
           setTimeout(
             () => {
+
+              console.log(
+                "🔄 Reconnecting..."
+              );
+
               startMexcWebSocket();
+
             },
             5000
           );
+
       }
     );
 
     ws.on(
       "error",
-      (
-        error
-      ) => {
+      (error) => {
+
         console.error(
-          error.message
+          "❌ WebSocket Error:"
         );
+
+        console.error(
+          error
+        );
+
       }
     );
 
