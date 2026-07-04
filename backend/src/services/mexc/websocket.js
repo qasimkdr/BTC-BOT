@@ -42,9 +42,7 @@ const startMexcWebSocket =
       "message",
       async (data) => {
 
-        console.log(
-          "📩 Binance message received"
-        );
+      
 
         try {
 
@@ -53,10 +51,7 @@ const startMexcWebSocket =
               data.toString()
             );
 
-          console.log(
-            "EVENT:",
-            parsed.e
-          );
+        
 
           if (
             parsed.e !==
@@ -73,20 +68,14 @@ const startMexcWebSocket =
               kline.c
             );
 
-          console.log(
-            "💰 LIVE PRICE:",
-            currentPrice
-          );
+      
 
           const io =
             getIO();
 
           if (io) {
 
-            console.log(
-              "📡 Emitting price-update:",
-              currentPrice
-            );
+          
 
             io.emit(
               "price-update",
@@ -195,13 +184,6 @@ const startMexcWebSocket =
 
   const candleId =
     kline.t;
-
-  console.log(
-    "⏳ Remaining:",
-    remainingSeconds,
-    "Signal:",
-    signal.signal
-  );
 
   // =========================
   // 2 MIN ALERT
