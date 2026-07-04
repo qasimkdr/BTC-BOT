@@ -17,7 +17,7 @@ const Dashboard = () => {
       {/* Other Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <PriceCard />
-        <ActiveTradeCard />
+        
         <StatsCard />
       </div>
 
