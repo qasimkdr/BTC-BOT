@@ -23,6 +23,11 @@ const Dashboard = () => {
 
       {/* Full Width Signal */}
       <div className="mb-6 mt-4">
+        <ActiveTradeCard />
+      </div>
+
+      
+      <div className="mb-6 mt-4">
         <SignalCard />
       </div>
       <div className="mb-6 mt-4">
