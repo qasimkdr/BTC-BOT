@@ -12,6 +12,8 @@ const sendTelegramAlert = async (
     const chatIds = [
       process.env.TELEGRAM_CHAT_ID,
        process.env.TELEGRAM_CHAT_ID_2,
+      process.env.TELEGRAM_CHAT_ID_3,
+      
     ].filter(Boolean);
 
     if (!token) {
