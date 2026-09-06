@@ -1,19 +1,14 @@
 import Trade from "../../models/Trade.js";
 
+const STRATEGY_VERSION = "v2-live-tp1-lock";
+const MANAGEMENT_PLAN = "TP1_LOCK_TO_TP1";
+
 const createTrade = async (signalData) => {
   try {
-    if (signalData.signal === "NONE") {
-      return null;
-    }
+    if (signalData.signal === "NONE") return null;
 
-    const riskPoints = Math.abs(
-      signalData.entry - signalData.stopLoss
-    );
-
-    const rewardPoints = Math.abs(
-      signalData.takeProfit2 - signalData.entry
-    );
-
+    const riskPoints = Math.abs(signalData.entry - signalData.stopLoss);
+    const rewardPoints = Math.abs(signalData.takeProfit2 - signalData.entry);
     const now = Date.now();
     const date = new Date(now);
     const ema200 = signalData.ema200 ?? null;
@@ -21,26 +16,27 @@ const createTrade = async (signalData) => {
 
     const trade = await Trade.create({
       signal: signalData.signal,
-      strategyVersion: "v2-research",
+      strategyVersion: STRATEGY_VERSION,
+      managementPlan: MANAGEMENT_PLAN,
       score: signalData.score,
       entry: signalData.entry,
       currentPrice,
       stopLoss: signalData.stopLoss,
+      originalStopLoss: signalData.stopLoss,
       takeProfit1: signalData.takeProfit1,
       takeProfit2: signalData.takeProfit2,
       riskPoints,
       rewardPoints,
       pnlPoints: 0,
       openTime: now,
-
       tradeDurationSeconds: 0,
       tp1Hit: false,
       tp2Hit: false,
+      tp1Locked: false,
       highestProfitPoints: 0,
       lowestDrawdownPoints: 0,
       maxFavorablePrice: signalData.entry,
       maxAdversePrice: signalData.entry,
-
       buyPressure: signalData.buyPressure,
       sellPressure: signalData.sellPressure,
       trend: signalData.structure?.trend,
@@ -64,7 +60,7 @@ const createTrade = async (signalData) => {
       choch: signalData.structure?.choch,
     });
 
-    console.log("Trade Created:", trade._id);
+    console.log("Trade Created:", trade._id, STRATEGY_VERSION);
     return trade;
   } catch (error) {
     console.error(error);
