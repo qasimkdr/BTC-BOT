@@ -49,20 +49,49 @@ export const calculateWilderRSI = (candles, period = 14) => {
   return 100 - 100 / (1 + rs);
 };
 
-export const aggregateCandles = (candles, groupSize = 4) => {
+const toMs = (value) => {
+  if (typeof value === "number") return value;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+export const aggregateCandles = (candles, groupSize = 4, sourceMinutes = 15) => {
   if (!candles?.length || groupSize < 2) return candles || [];
-  const out = [];
-  const start = candles.length % groupSize;
-  for (let i = start; i + groupSize <= candles.length; i += groupSize) {
-    const group = candles.slice(i, i + groupSize);
-    out.push({
-      openTime: group[0].openTime,
-      open: group[0].open,
-      high: Math.max(...group.map((c) => c.high)),
-      low: Math.min(...group.map((c) => c.low)),
-      close: group[group.length - 1].close,
-      volume: group.reduce((sum, c) => sum + Number(c.volume || 0), 0),
-    });
+
+  const bucketMs = groupSize * sourceMinutes * 60 * 1000;
+  const buckets = new Map();
+
+  for (const candle of candles) {
+    const timeMs = toMs(candle.openTime);
+    if (!Number.isFinite(timeMs)) continue;
+
+    const bucket = Math.floor(timeMs / bucketMs) * bucketMs;
+    const existing = buckets.get(bucket);
+
+    if (!existing) {
+      buckets.set(bucket, {
+        openTime: bucket,
+        open: Number(candle.open),
+        high: Number(candle.high),
+        low: Number(candle.low),
+        close: Number(candle.close),
+        volume: Number(candle.volume || 0),
+        count: 1,
+      });
+      continue;
+    }
+
+    existing.high = Math.max(existing.high, Number(candle.high));
+    existing.low = Math.min(existing.low, Number(candle.low));
+    existing.close = Number(candle.close);
+    existing.volume += Number(candle.volume || 0);
+    existing.count += 1;
   }
-  return out;
+
+  // Only use complete higher-timeframe candles. This prevents partial 1H bars from
+  // changing historical structure/EMA values as new 15m candles arrive.
+  return [...buckets.values()]
+    .filter((candle) => candle.count === groupSize)
+    .sort((a, b) => a.openTime - b.openTime)
+    .map(({ count, ...candle }) => candle);
 };
