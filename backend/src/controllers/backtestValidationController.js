@@ -16,12 +16,7 @@ const round = (value, digits = 3) => {
   return Math.round(value * factor) / factor;
 };
 
-const getR = (result) => {
-  if (result === "TP2_WIN") return 2;
-  if (result === "TP1_WIN") return 1;
-  if (result === "LOSS") return -1;
-  return 0;
-};
+const getR = (result) => result === "TP2_WIN" ? 2 : result === "TP1_WIN" ? 1 : result === "LOSS" ? -1 : 0;
 
 const getCandidateFeatures = (history) => {
   const recent = history.slice(-1000);
@@ -29,45 +24,38 @@ const getCandidateFeatures = (history) => {
   const atr = calculateWilderATR(recent, 14);
   const ema50 = calculateEMAStandard(recent, 50);
   const volume = volumeAnalysisV3(recent, 20);
-
   return {
     volumeRatio: Number(volume?.ratio || 0),
     volumeBias: volume?.directionalBias || "neutral",
-    ema50DistanceAtr:
-      atr > 0 && ema50 != null && current?.close != null
-        ? (current.close - ema50) / atr
-        : null,
+    ema50DistanceAtr: atr > 0 && ema50 != null && current?.close != null
+      ? (current.close - ema50) / atr
+      : null,
   };
 };
 
-const candidatePasses = (features) => {
-  const volumeOk = features.volumeRatio >= 1.4 && features.volumeRatio < 2.2;
-  const biasOk = features.volumeBias !== "bullish";
-  const emaDistance = features.ema50DistanceAtr;
-  const avoidsWeakZone = Number.isFinite(emaDistance)
-    ? !(emaDistance >= 1 && emaDistance < 2)
-    : false;
-
-  return volumeOk && biasOk && avoidsWeakZone;
-};
+const candidatePasses = (f) =>
+  f.volumeRatio >= 1.4 &&
+  f.volumeRatio < 2.2 &&
+  f.volumeBias !== "bullish" &&
+  Number.isFinite(f.ema50DistanceAtr) &&
+  !(f.ema50DistanceAtr >= 1 && f.ema50DistanceAtr < 2);
 
 const summarizeTrades = (tradeLogs) => {
   const trades = tradeLogs.length;
-  const wins = tradeLogs.filter((trade) => trade.rMultiple > 0).length;
-  const losses = tradeLogs.filter((trade) => trade.rMultiple < 0).length;
-  const tp1Wins = tradeLogs.filter((trade) => trade.result === "TP1_WIN").length;
-  const tp2Wins = tradeLogs.filter((trade) => trade.result === "TP2_WIN").length;
-  const totalR = tradeLogs.reduce((sum, trade) => sum + trade.rMultiple, 0);
-  const grossWinR = tradeLogs.reduce((sum, trade) => sum + Math.max(trade.rMultiple, 0), 0);
-  const grossLossR = Math.abs(tradeLogs.reduce((sum, trade) => sum + Math.min(trade.rMultiple, 0), 0));
+  const wins = tradeLogs.filter((t) => t.rMultiple > 0).length;
+  const losses = tradeLogs.filter((t) => t.rMultiple < 0).length;
+  const tp1Wins = tradeLogs.filter((t) => t.result === "TP1_WIN").length;
+  const tp2Wins = tradeLogs.filter((t) => t.result === "TP2_WIN").length;
+  const totalR = tradeLogs.reduce((s, t) => s + t.rMultiple, 0);
+  const grossWinR = tradeLogs.reduce((s, t) => s + Math.max(t.rMultiple, 0), 0);
+  const grossLossR = Math.abs(tradeLogs.reduce((s, t) => s + Math.min(t.rMultiple, 0), 0));
 
   const byDirection = ["BUY", "SELL"].reduce((acc, direction) => {
-    const rows = tradeLogs.filter((trade) => trade.signal === direction);
-    const dirWins = rows.filter((trade) => trade.rMultiple > 0).length;
-    const dirR = rows.reduce((sum, trade) => sum + trade.rMultiple, 0);
-    const dirGrossWin = rows.reduce((sum, trade) => sum + Math.max(trade.rMultiple, 0), 0);
-    const dirGrossLoss = Math.abs(rows.reduce((sum, trade) => sum + Math.min(trade.rMultiple, 0), 0));
-
+    const rows = tradeLogs.filter((t) => t.signal === direction);
+    const dirWins = rows.filter((t) => t.rMultiple > 0).length;
+    const dirR = rows.reduce((s, t) => s + t.rMultiple, 0);
+    const dirGrossWin = rows.reduce((s, t) => s + Math.max(t.rMultiple, 0), 0);
+    const dirGrossLoss = Math.abs(rows.reduce((s, t) => s + Math.min(t.rMultiple, 0), 0));
     acc[direction] = {
       trades: rows.length,
       wins: dirWins,
@@ -105,7 +93,6 @@ const runWindow = (candles, mode) => {
   while (i < candles.length - 1) {
     const history = candles.slice(0, i + 1);
     const signal = signalEngine(history);
-
     if (!signal || signal.signal === "NONE") {
       i++;
       continue;
@@ -129,110 +116,38 @@ const runWindow = (candles, mode) => {
     let tradeAmbiguous = false;
 
     for (let j = i + 1; j < candles.length; j++) {
-      const candle = candles[j];
-
+      const c = candles[j];
       if (!filled) {
-        const entryTouched = signal.signal === "BUY"
-          ? candle.low <= signal.entry
-          : candle.high >= signal.entry;
-        if (!entryTouched) continue;
+        const touched = signal.signal === "BUY" ? c.low <= signal.entry : c.high >= signal.entry;
+        if (!touched) continue;
         filled = true;
       }
 
       if (signal.signal === "BUY") {
-        const hitsStop = candle.low <= stopLoss;
-        const hitsTp1 = candle.high >= signal.takeProfit1;
-        const hitsTp2 = candle.high >= signal.takeProfit2;
-
-        if (!tp1Hit && hitsStop && hitsTp1) {
-          tradeAmbiguous = true;
-          ambiguousBars++;
-          result = "LOSS";
-          tradeClosedAt = j;
-          break;
-        }
-        if (tp1Hit && hitsStop && hitsTp2) {
-          tradeAmbiguous = true;
-          ambiguousBars++;
-          result = "TP1_WIN";
-          tradeClosedAt = j;
-          break;
-        }
-        if (!tp1Hit && hitsStop) {
-          result = "LOSS";
-          tradeClosedAt = j;
-          break;
-        }
-        if (hitsTp2) {
-          tp1Hit = true;
-          result = "TP2_WIN";
-          tradeClosedAt = j;
-          break;
-        }
-        if (!tp1Hit && hitsTp1) {
-          tp1Hit = true;
-          stopLoss = signal.takeProfit1;
-          continue;
-        }
-        if (tp1Hit && hitsStop) {
-          result = "TP1_WIN";
-          tradeClosedAt = j;
-          break;
-        }
+        const stop = c.low <= stopLoss;
+        const tp1 = c.high >= signal.takeProfit1;
+        const tp2 = c.high >= signal.takeProfit2;
+        if (!tp1Hit && stop && tp1) { tradeAmbiguous = true; ambiguousBars++; result = "LOSS"; tradeClosedAt = j; break; }
+        if (tp1Hit && stop && tp2) { tradeAmbiguous = true; ambiguousBars++; result = "TP1_WIN"; tradeClosedAt = j; break; }
+        if (!tp1Hit && stop) { result = "LOSS"; tradeClosedAt = j; break; }
+        if (tp2) { tp1Hit = true; result = "TP2_WIN"; tradeClosedAt = j; break; }
+        if (!tp1Hit && tp1) { tp1Hit = true; stopLoss = signal.takeProfit1; continue; }
+        if (tp1Hit && stop) { result = "TP1_WIN"; tradeClosedAt = j; break; }
       } else {
-        const hitsStop = candle.high >= stopLoss;
-        const hitsTp1 = candle.low <= signal.takeProfit1;
-        const hitsTp2 = candle.low <= signal.takeProfit2;
-
-        if (!tp1Hit && hitsStop && hitsTp1) {
-          tradeAmbiguous = true;
-          ambiguousBars++;
-          result = "LOSS";
-          tradeClosedAt = j;
-          break;
-        }
-        if (tp1Hit && hitsStop && hitsTp2) {
-          tradeAmbiguous = true;
-          ambiguousBars++;
-          result = "TP1_WIN";
-          tradeClosedAt = j;
-          break;
-        }
-        if (!tp1Hit && hitsStop) {
-          result = "LOSS";
-          tradeClosedAt = j;
-          break;
-        }
-        if (hitsTp2) {
-          tp1Hit = true;
-          result = "TP2_WIN";
-          tradeClosedAt = j;
-          break;
-        }
-        if (!tp1Hit && hitsTp1) {
-          tp1Hit = true;
-          stopLoss = signal.takeProfit1;
-          continue;
-        }
-        if (tp1Hit && hitsStop) {
-          result = "TP1_WIN";
-          tradeClosedAt = j;
-          break;
-        }
+        const stop = c.high >= stopLoss;
+        const tp1 = c.low <= signal.takeProfit1;
+        const tp2 = c.low <= signal.takeProfit2;
+        if (!tp1Hit && stop && tp1) { tradeAmbiguous = true; ambiguousBars++; result = "LOSS"; tradeClosedAt = j; break; }
+        if (tp1Hit && stop && tp2) { tradeAmbiguous = true; ambiguousBars++; result = "TP1_WIN"; tradeClosedAt = j; break; }
+        if (!tp1Hit && stop) { result = "LOSS"; tradeClosedAt = j; break; }
+        if (tp2) { tp1Hit = true; result = "TP2_WIN"; tradeClosedAt = j; break; }
+        if (!tp1Hit && tp1) { tp1Hit = true; stopLoss = signal.takeProfit1; continue; }
+        if (tp1Hit && stop) { result = "TP1_WIN"; tradeClosedAt = j; break; }
       }
     }
 
-    if (!filled) {
-      unfilled++;
-      i++;
-      continue;
-    }
-
-    if (!result) {
-      unresolved++;
-      i++;
-      continue;
-    }
+    if (!filled) { unfilled++; i++; continue; }
+    if (!result) { unresolved++; i++; continue; }
 
     tradeLogs.push({
       signal: signal.signal,
@@ -243,12 +158,12 @@ const runWindow = (candles, mode) => {
       closeTime: candles[tradeClosedAt]?.openTime,
       candidateFeatures,
     });
-
     i = tradeClosedAt + 1;
   }
 
   return {
-    ...summarizeTrades(tradeLogs),
+    tradeLogs,
+    stats: summarizeTrades(tradeLogs),
     rejectedSignals,
     unfilled,
     unresolved,
@@ -256,22 +171,20 @@ const runWindow = (candles, mode) => {
   };
 };
 
-const aggregateWindows = (windows, key) => {
-  const rows = windows.flatMap((window) => window[key]?.tradeLogs || []);
-  return summarizeTrades(rows);
-};
+const publicRun = (run) => ({
+  ...run.stats,
+  rejectedSignals: run.rejectedSignals,
+  unfilled: run.unfilled,
+  unresolved: run.unresolved,
+  ambiguousBars: run.ambiguousBars,
+});
 
 export const runBacktestValidation = async (req, res) => {
   try {
-    const requestedWindows = Math.min(
-      Math.max(Number.parseInt(req.query.windows, 10) || MAX_WINDOWS, 2),
-      MAX_WINDOWS,
-    );
-    const candleLimit = requestedWindows * WINDOW_SIZE;
-
+    const requestedWindows = Math.min(Math.max(Number.parseInt(req.query.windows, 10) || MAX_WINDOWS, 2), MAX_WINDOWS);
     const newest = await Candle15m.find()
       .sort({ openTime: -1 })
-      .limit(candleLimit)
+      .limit(requestedWindows * WINDOW_SIZE)
       .lean();
 
     const allCandles = newest.reverse();
@@ -288,19 +201,17 @@ export const runBacktestValidation = async (req, res) => {
 
     const usable = allCandles.slice(-(windowCount * WINDOW_SIZE));
     const windows = [];
-    const aggregateBaselineLogs = [];
-    const aggregateCandidateLogs = [];
+    const baselineLogs = [];
+    const candidateLogs = [];
 
     for (let w = 0; w < windowCount; w++) {
       const candles = usable.slice(w * WINDOW_SIZE, (w + 1) * WINDOW_SIZE);
-      const baseline = runWindow(candles, "baseline");
-      const candidate = runWindow(candles, "candidate");
-
-      // Recreate compact logs for aggregate statistics without exposing all rows.
-      const baselineReplay = runWindowWithLogs(candles, "baseline");
-      const candidateReplay = runWindowWithLogs(candles, "candidate");
-      aggregateBaselineLogs.push(...baselineReplay.tradeLogs);
-      aggregateCandidateLogs.push(...candidateReplay.tradeLogs);
+      const baselineRun = runWindow(candles, "baseline");
+      const candidateRun = runWindow(candles, "candidate");
+      baselineLogs.push(...baselineRun.tradeLogs);
+      candidateLogs.push(...candidateRun.tradeLogs);
+      const baseline = publicRun(baselineRun);
+      const candidate = publicRun(candidateRun);
 
       windows.push({
         window: w + 1,
@@ -313,23 +224,21 @@ export const runBacktestValidation = async (req, res) => {
         delta: {
           winRate: round(candidate.winRate - baseline.winRate, 2),
           expectancyR: round(candidate.expectancyR - baseline.expectancyR),
-          profitFactor: candidate.profitFactor == null || baseline.profitFactor == null
-            ? null
-            : round(candidate.profitFactor - baseline.profitFactor),
+          profitFactor: candidate.profitFactor == null || baseline.profitFactor == null ? null : round(candidate.profitFactor - baseline.profitFactor),
           totalR: round(candidate.totalR - baseline.totalR),
           trades: candidate.trades - baseline.trades,
         },
       });
     }
 
-    const baselineAggregate = summarizeTrades(aggregateBaselineLogs);
-    const candidateAggregate = summarizeTrades(aggregateCandidateLogs);
-    const windowsAtOrAbove70 = windows.filter((window) => window.candidate.winRate >= 70).length;
-    const profitableWindows = windows.filter((window) => window.candidate.expectancyR > 0 && (window.candidate.profitFactor == null || window.candidate.profitFactor > 1)).length;
-    const beatsBaselineWindows = windows.filter((window) =>
-      window.candidate.winRate > window.baseline.winRate &&
-      window.candidate.expectancyR >= window.baseline.expectancyR &&
-      (window.candidate.profitFactor == null || window.baseline.profitFactor == null || window.candidate.profitFactor >= window.baseline.profitFactor)
+    const baselineAggregate = summarizeTrades(baselineLogs);
+    const candidateAggregate = summarizeTrades(candidateLogs);
+    const windowsAtOrAbove70 = windows.filter((w) => w.candidate.winRate >= 70).length;
+    const profitableWindows = windows.filter((w) => w.candidate.expectancyR > 0 && (w.candidate.profitFactor == null || w.candidate.profitFactor > 1)).length;
+    const beatsBaselineWindows = windows.filter((w) =>
+      w.candidate.winRate > w.baseline.winRate &&
+      w.candidate.expectancyR >= w.baseline.expectancyR &&
+      (w.candidate.profitFactor == null || w.baseline.profitFactor == null || w.candidate.profitFactor >= w.baseline.profitFactor)
     ).length;
 
     let verdict = "REJECT";
@@ -345,7 +254,6 @@ export const runBacktestValidation = async (req, res) => {
 
     res.json({
       validationVersion: "v2-candidate-oos-3x10k",
-      strategy: "V2 current signal engine",
       candidate: {
         name: "Volume 1.4–2.2x + bearish/neutral volume bias + avoid EMA50 +1 to +2 ATR",
         rules: [
@@ -360,7 +268,7 @@ export const runBacktestValidation = async (req, res) => {
         nonOverlapping: true,
         windowsRequested: requestedWindows,
         windowsTested: windowCount,
-        execution: "Baseline and candidate are simulated independently with identical V2 entry/SL/TP execution. Rejected candidate signals do not block later signals.",
+        execution: "Baseline and candidate are simulated independently with identical V2 execution. Rejected candidate signals do not block later signals.",
       },
       availableCandles: allCandles.length,
       windows,
@@ -370,9 +278,7 @@ export const runBacktestValidation = async (req, res) => {
         delta: {
           winRate: round(candidateAggregate.winRate - baselineAggregate.winRate, 2),
           expectancyR: round(candidateAggregate.expectancyR - baselineAggregate.expectancyR),
-          profitFactor: candidateAggregate.profitFactor == null || baselineAggregate.profitFactor == null
-            ? null
-            : round(candidateAggregate.profitFactor - baselineAggregate.profitFactor),
+          profitFactor: candidateAggregate.profitFactor == null || baselineAggregate.profitFactor == null ? null : round(candidateAggregate.profitFactor - baselineAggregate.profitFactor),
           totalR: round(candidateAggregate.totalR - baselineAggregate.totalR),
           trades: candidateAggregate.trades - baselineAggregate.trades,
         },
@@ -384,83 +290,12 @@ export const runBacktestValidation = async (req, res) => {
         totalWindows: windowCount,
         verdict,
       },
-      note: "Research validation only. A strong result still needs trading costs, additional unseen data and forward/paper validation before changing live V2.",
+      note: "Research validation only. Strong results still require fees/slippage, more unseen data and forward/paper validation before live V2 changes.",
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: error.message });
   }
-};
-
-// Same engine as runWindow, but returns logs for cross-window aggregation.
-const runWindowWithLogs = (candles, mode) => {
-  const tradeLogs = [];
-  let i = REQUIRED_WARMUP - 1;
-
-  while (i < candles.length - 1) {
-    const history = candles.slice(0, i + 1);
-    const signal = signalEngine(history);
-    if (!signal || signal.signal === "NONE") {
-      i++;
-      continue;
-    }
-
-    let candidateFeatures = null;
-    if (mode === "candidate") {
-      candidateFeatures = getCandidateFeatures(history);
-      if (!candidatePasses(candidateFeatures)) {
-        i++;
-        continue;
-      }
-    }
-
-    let filled = false;
-    let result = null;
-    let tradeClosedAt = i;
-    let tp1Hit = false;
-    let stopLoss = signal.stopLoss;
-
-    for (let j = i + 1; j < candles.length; j++) {
-      const candle = candles[j];
-      if (!filled) {
-        const touched = signal.signal === "BUY" ? candle.low <= signal.entry : candle.high >= signal.entry;
-        if (!touched) continue;
-        filled = true;
-      }
-
-      if (signal.signal === "BUY") {
-        const stop = candle.low <= stopLoss;
-        const tp1 = candle.high >= signal.takeProfit1;
-        const tp2 = candle.high >= signal.takeProfit2;
-        if (!tp1Hit && stop && tp1) { result = "LOSS"; tradeClosedAt = j; break; }
-        if (tp1Hit && stop && tp2) { result = "TP1_WIN"; tradeClosedAt = j; break; }
-        if (!tp1Hit && stop) { result = "LOSS"; tradeClosedAt = j; break; }
-        if (tp2) { result = "TP2_WIN"; tradeClosedAt = j; break; }
-        if (!tp1Hit && tp1) { tp1Hit = true; stopLoss = signal.takeProfit1; continue; }
-        if (tp1Hit && stop) { result = "TP1_WIN"; tradeClosedAt = j; break; }
-      } else {
-        const stop = candle.high >= stopLoss;
-        const tp1 = candle.low <= signal.takeProfit1;
-        const tp2 = candle.low <= signal.takeProfit2;
-        if (!tp1Hit && stop && tp1) { result = "LOSS"; tradeClosedAt = j; break; }
-        if (tp1Hit && stop && tp2) { result = "TP1_WIN"; tradeClosedAt = j; break; }
-        if (!tp1Hit && stop) { result = "LOSS"; tradeClosedAt = j; break; }
-        if (tp2) { result = "TP2_WIN"; tradeClosedAt = j; break; }
-        if (!tp1Hit && tp1) { tp1Hit = true; stopLoss = signal.takeProfit1; continue; }
-        if (tp1Hit && stop) { result = "TP1_WIN"; tradeClosedAt = j; break; }
-      }
-    }
-
-    if (!filled || !result) {
-      i++;
-      continue;
-    }
-
-    tradeLogs.push({ signal: signal.signal, result, rMultiple: getR(result), candidateFeatures });
-    i = tradeClosedAt + 1;
-  }
-
-  return { tradeLogs };
 };
 
 export default runBacktestValidation;
