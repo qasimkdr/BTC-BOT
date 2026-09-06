@@ -4,6 +4,7 @@ import api from "../services/api";
 const CACHE_KEYS = {
   v1: "btc-bot-v1-backtest-10k",
   v2: "btc-bot-v2-backtest-10k",
+  accuracy: "btc-bot-v2-accuracy-backtest-10k",
 };
 
 const Metric = ({ label, value, accent = false }) => (
@@ -78,11 +79,14 @@ const ResultPanel = ({ title, badge, data, savedAt }) => {
 const BacktestLab = () => {
   const cachedV1 = readCachedBacktest(CACHE_KEYS.v1);
   const cachedV2 = readCachedBacktest(CACHE_KEYS.v2);
+  const cachedAccuracy = readCachedBacktest(CACHE_KEYS.accuracy);
 
   const [v1Data, setV1Data] = useState(cachedV1?.data || null);
   const [v2Data, setV2Data] = useState(cachedV2?.data || null);
+  const [accuracyData, setAccuracyData] = useState(cachedAccuracy?.data || null);
   const [v1SavedAt, setV1SavedAt] = useState(cachedV1?.savedAt || null);
   const [v2SavedAt, setV2SavedAt] = useState(cachedV2?.savedAt || null);
+  const [accuracySavedAt, setAccuracySavedAt] = useState(cachedAccuracy?.savedAt || null);
   const [loadingVersion, setLoadingVersion] = useState(null);
   const [error, setError] = useState("");
 
@@ -91,7 +95,13 @@ const BacktestLab = () => {
       setLoadingVersion(version);
       setError("");
 
-      const endpoint = version === "v1" ? "/backtest/v1" : "/backtest";
+      const endpoint =
+        version === "v1"
+          ? "/backtest/v1"
+          : version === "accuracy"
+            ? "/backtest?engine=accuracy"
+            : "/backtest";
+
       const response = await api.get(endpoint);
       const stamp = new Date().toISOString();
       const payload = { data: response.data, savedAt: stamp };
@@ -101,6 +111,9 @@ const BacktestLab = () => {
       if (version === "v1") {
         setV1Data(response.data);
         setV1SavedAt(stamp);
+      } else if (version === "accuracy") {
+        setAccuracyData(response.data);
+        setAccuracySavedAt(stamp);
       } else {
         setV2Data(response.data);
         setV2SavedAt(stamp);
@@ -113,21 +126,21 @@ const BacktestLab = () => {
   };
 
   const comparison = useMemo(() => {
-    if (!v1Data || !v2Data) return null;
+    if (!v2Data || !accuracyData) return null;
 
-    const delta = (v2, v1, digits = 3) => {
-      const value = Number(v2 || 0) - Number(v1 || 0);
+    const delta = (candidate, baseline, digits = 3) => {
+      const value = Number(candidate || 0) - Number(baseline || 0);
       return Number(value.toFixed(digits));
     };
 
     return {
-      winRate: delta(v2Data.winRate, v1Data.winRate, 2),
-      expectancyR: delta(v2Data.expectancyR, v1Data.expectancyR),
-      profitFactor: delta(v2Data.profitFactor, v1Data.profitFactor),
-      totalR: delta(v2Data.totalR, v1Data.totalR),
-      trades: delta(v2Data.trades, v1Data.trades, 0),
+      winRate: delta(accuracyData.winRate, v2Data.winRate, 2),
+      expectancyR: delta(accuracyData.expectancyR, v2Data.expectancyR),
+      profitFactor: delta(accuracyData.profitFactor, v2Data.profitFactor),
+      totalR: delta(accuracyData.totalR, v2Data.totalR),
+      trades: delta(accuracyData.trades, v2Data.trades, 0),
     };
-  }, [v1Data, v2Data]);
+  }, [v2Data, accuracyData]);
 
   return (
     <section className="strategy-lab glass-panel">
@@ -136,51 +149,52 @@ const BacktestLab = () => {
           <div className="eyebrow">RESEARCH MODE · SAME LATEST 10K CANDLES</div>
           <h2>Strategy Lab</h2>
           <p>
-            Run V1 legacy execution and V2 corrected execution separately on the same latest 10,000 stored 15m candles. Both results are saved on this device after refresh.
+            Compare V1 legacy, V2 corrected execution, and the new accuracy-focused V2 candidate on the exact same latest 10,000 stored 15m candles. Results stay saved on this device.
           </p>
         </div>
 
         <div className="backtest-action-row">
-          <button
-            className="run-backtest-btn"
-            onClick={() => runBacktest("v1")}
-            disabled={Boolean(loadingVersion)}
-          >
+          <button className="run-backtest-btn" onClick={() => runBacktest("v1")} disabled={Boolean(loadingVersion)}>
             <span className="run-dot" />
             {loadingVersion === "v1" ? "Running V1..." : v1Data ? "Re-run V1" : "Run V1"}
           </button>
 
-          <button
-            className="run-backtest-btn"
-            onClick={() => runBacktest("v2")}
-            disabled={Boolean(loadingVersion)}
-          >
+          <button className="run-backtest-btn" onClick={() => runBacktest("v2")} disabled={Boolean(loadingVersion)}>
             <span className="run-dot" />
             {loadingVersion === "v2" ? "Running V2..." : v2Data ? "Re-run V2" : "Run V2"}
+          </button>
+
+          <button className="run-backtest-btn" onClick={() => runBacktest("accuracy")} disabled={Boolean(loadingVersion)}>
+            <span className="run-dot" />
+            {loadingVersion === "accuracy"
+              ? "Testing accuracy..."
+              : accuracyData
+                ? "Re-run Accuracy V2"
+                : "Run Accuracy V2"}
           </button>
         </div>
       </div>
 
       {error && <div className="lab-error">{error}</div>}
 
-      {!v1Data && !v2Data && !error && (
+      {!v1Data && !v2Data && !accuracyData && !error && (
         <div className="lab-idle">
           <div className="orbital-loader"><span /></div>
           <div>
-            <strong>V1 vs V2 comparison ready</strong>
-            <p>Run either engine first. Once both are available, the lab will show the V2 minus V1 performance difference.</p>
+            <strong>Accuracy research ready</strong>
+            <p>Use Accuracy V2 to test the stricter candidate. A higher win rate only matters if expectancy and trade count remain useful.</p>
           </div>
         </div>
       )}
 
       <ResultPanel title="V1" badge="V1 LEGACY" data={v1Data} savedAt={v1SavedAt} />
-
       <ResultPanel title="V2" badge="V2 CORRECTED" data={v2Data} savedAt={v2SavedAt} />
+      <ResultPanel title="Accuracy V2" badge="V2 ACCURACY CANDIDATE" data={accuracyData} savedAt={accuracySavedAt} />
 
       {comparison && (
         <div className="backtest-comparison-block">
           <div className="lab-version-row">
-            <span>V2 − V1 COMPARISON</span>
+            <span>ACCURACY V2 − CURRENT V2</span>
             <span>Same latest 10k candle window</span>
           </div>
           <div className="lab-metrics-grid">
@@ -191,8 +205,8 @@ const BacktestLab = () => {
             <Metric label="Completed Trades Δ" value={`${comparison.trades >= 0 ? "+" : ""}${comparison.trades}`} />
           </div>
           <div className="lab-footnote">
-            <span>Positive Δ means V2 is higher than V1 for that metric.</span>
-            <span>V1 is intentionally a legacy execution comparator, not the preferred execution model.</span>
+            <span>Accuracy V2 is research-only and does not change live trading.</span>
+            <span>We will not promote it just because win rate rises; expectancy, PF and sample size must also stay healthy.</span>
           </div>
         </div>
       )}
