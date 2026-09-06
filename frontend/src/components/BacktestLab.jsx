@@ -1,6 +1,8 @@
 import { useState } from "react";
 import api from "../services/api";
 
+const CACHE_KEY = "btc-bot-v2-backtest-10k";
+
 const Metric = ({ label, value, accent = false }) => (
   <div className={`lab-metric ${accent ? "lab-metric-accent" : ""}`}>
     <span>{label}</span>
@@ -8,8 +10,19 @@ const Metric = ({ label, value, accent = false }) => (
   </div>
 );
 
+const readCachedBacktest = () => {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
 const BacktestLab = () => {
-  const [data, setData] = useState(null);
+  const cached = readCachedBacktest();
+  const [data, setData] = useState(cached?.data || null);
+  const [savedAt, setSavedAt] = useState(cached?.savedAt || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -18,7 +31,13 @@ const BacktestLab = () => {
       setLoading(true);
       setError("");
       const response = await api.get("/backtest");
+      const stamp = new Date().toISOString();
       setData(response.data);
+      setSavedAt(stamp);
+      localStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify({ data: response.data, savedAt: stamp })
+      );
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Backtest failed");
     } finally {
@@ -30,13 +49,15 @@ const BacktestLab = () => {
     <section className="strategy-lab glass-panel">
       <div className="strategy-lab-head">
         <div>
-          <div className="eyebrow">RESEARCH MODE</div>
+          <div className="eyebrow">RESEARCH MODE · LAST 10K CANDLES</div>
           <h2>Strategy Lab</h2>
-          <p>Run the current BTC signal engine across stored 15m candles with V2 execution rules.</p>
+          <p>
+            Runs only the latest 10,000 stored 15m candles. Your last completed result is saved on this device and restored after refresh.
+          </p>
         </div>
         <button className="run-backtest-btn" onClick={runBacktest} disabled={loading}>
           <span className="run-dot" />
-          {loading ? "Running historical simulation..." : "Run V2 Backtest"}
+          {loading ? "Testing latest 10k..." : data ? "Re-run latest 10k" : "Run latest 10k"}
         </button>
       </div>
 
@@ -46,8 +67,8 @@ const BacktestLab = () => {
         <div className="lab-idle">
           <div className="orbital-loader"><span /></div>
           <div>
-            <strong>Historical engine ready</strong>
-            <p>Click run to measure win rate, expectancy, profit factor and direction performance.</p>
+            <strong>10k historical window ready</strong>
+            <p>Run once. The result will stay visible after page reloads until you run a newer test.</p>
           </div>
         </div>
       )}
@@ -56,8 +77,9 @@ const BacktestLab = () => {
         <>
           <div className="lab-version-row">
             <span>{data.backtestVersion || "backtest"}</span>
-            <span>{data.candleCount?.toLocaleString()} candles</span>
+            <span>{data.candleCount?.toLocaleString()} / 10,000 candles</span>
             <span>{data.trades} completed trades</span>
+            {savedAt && <span>Saved {new Date(savedAt).toLocaleString()}</span>}
           </div>
 
           <div className="lab-metrics-grid">
