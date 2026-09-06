@@ -1,6 +1,8 @@
 import Candle15m from "../models/Candle15m.js";
 import signalEngine from "../services/analysis/signalEngine.js";
 
+const BACKTEST_CANDLE_LIMIT = 10000;
+
 const round = (value, digits = 3) => {
   if (!Number.isFinite(value)) return 0;
   const factor = 10 ** digits;
@@ -16,7 +18,13 @@ const getR = (result) => {
 
 export const runBacktest = async (req, res) => {
   try {
-    const candles = await Candle15m.find().sort({ openTime: 1 }).lean();
+    // Keep research runs fast and repeatable: always use only the newest 10,000 15m candles.
+    const newestCandles = await Candle15m.find()
+      .sort({ openTime: -1 })
+      .limit(BACKTEST_CANDLE_LIMIT)
+      .lean();
+
+    const candles = newestCandles.reverse();
 
     if (candles.length < 252) {
       return res.status(400).json({
@@ -218,7 +226,6 @@ export const runBacktest = async (req, res) => {
         closeTime: candles[tradeClosedAt]?.openTime,
       });
 
-      // Match live bot behavior: only one active trade at a time.
       i = tradeClosedAt + 1;
     }
 
@@ -248,9 +255,12 @@ export const runBacktest = async (req, res) => {
 
     res.json({
       engine: "signalEngine",
-      backtestVersion: "v2-execution",
-      note: "Uses the current signal engine with corrected entry-fill and conservative same-candle execution handling.",
+      backtestVersion: "v2-execution-10k",
+      note: "Uses only the latest 10,000 stored 15m candles with corrected entry-fill and conservative same-candle execution handling.",
+      candleLimit: BACKTEST_CANDLE_LIMIT,
       candleCount: candles.length,
+      windowStartTime: candles[0]?.openTime,
+      windowEndTime: candles[candles.length - 1]?.openTime,
       trades: total,
       wins,
       tp1Wins,
