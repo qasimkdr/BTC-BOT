@@ -15,6 +15,15 @@ const closeTrade = async (trade, result, journey, pnlPoints, io) => {
   emitTrade(io, trade);
 };
 
+const ensureTp1Lock = (trade) => {
+  if (trade.tp1Hit && !trade.tp1Locked) {
+    trade.originalStopLoss = trade.originalStopLoss ?? trade.stopLoss;
+    trade.stopLoss = trade.takeProfit1;
+    trade.tp1Locked = true;
+    trade.tp1LockTime = trade.tp1LockTime || Date.now();
+  }
+};
+
 const monitorTrades = async (currentPrice, io) => {
   try {
     const activeTrades = await Trade.find({ status: "ACTIVE" });
@@ -22,6 +31,7 @@ const monitorTrades = async (currentPrice, io) => {
     for (const trade of activeTrades) {
       trade.currentPrice = currentPrice;
       trade.tradeDurationSeconds = Math.floor((Date.now() - trade.openTime) / 1000);
+      ensureTp1Lock(trade);
 
       if (trade.signal === "BUY") {
         if (currentPrice > trade.maxFavorablePrice) trade.maxFavorablePrice = currentPrice;
@@ -52,13 +62,7 @@ const monitorTrades = async (currentPrice, io) => {
 
         if (currentPrice >= trade.takeProfit2) {
           trade.tp2Hit = true;
-          await closeTrade(
-            trade,
-            "TP2_HIT",
-            trade.tp1Hit ? "TP1_THEN_TP2" : "DIRECT_TP2",
-            trade.rewardPoints,
-            io
-          );
+          await closeTrade(trade, "TP2_HIT", trade.tp1Hit ? "TP1_THEN_TP2" : "DIRECT_TP2", trade.rewardPoints, io);
           console.log(`🚀 TP2 HIT ${trade._id}`);
           continue;
         }
@@ -92,13 +96,7 @@ const monitorTrades = async (currentPrice, io) => {
 
         if (currentPrice <= trade.takeProfit2) {
           trade.tp2Hit = true;
-          await closeTrade(
-            trade,
-            "TP2_HIT",
-            trade.tp1Hit ? "TP1_THEN_TP2" : "DIRECT_TP2",
-            trade.rewardPoints,
-            io
-          );
+          await closeTrade(trade, "TP2_HIT", trade.tp1Hit ? "TP1_THEN_TP2" : "DIRECT_TP2", trade.rewardPoints, io);
           console.log(`🚀 TP2 HIT ${trade._id}`);
           continue;
         }
