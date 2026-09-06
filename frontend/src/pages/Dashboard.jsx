@@ -7,6 +7,7 @@ import ActiveTradeCard from "../components/ActiveTradeCard";
 import PressureCard from "../components/PressureCard";
 import BacktestLab from "../components/BacktestLab";
 import OutOfSampleValidation from "../components/OutOfSampleValidation";
+import WalkForwardResearch from "../components/WalkForwardResearch";
 
 const Dashboard = () => {
   return (
@@ -19,21 +20,11 @@ const Dashboard = () => {
         <header className="hero-panel glass-panel">
           <div>
             <div className="eyebrow">BTC INTELLIGENCE SYSTEM</div>
-            <h1>
-              Trading Intelligence
-              <span>Live signals. Historical proof.</span>
-            </h1>
-            <p>
-              A visual command center for BTC market structure, execution analytics,
-              trade performance and V2 strategy research.
-            </p>
+            <h1>Trading Intelligence<span>Live signals. Historical proof.</span></h1>
+            <p>A visual command center for BTC market structure, execution analytics, trade performance and V2 strategy research.</p>
           </div>
-
           <div className="hero-orbit" aria-hidden="true">
-            <div className="btc-core">₿</div>
-            <span className="orbit orbit-a" />
-            <span className="orbit orbit-b" />
-            <span className="orbit orbit-c" />
+            <div className="btc-core">₿</div><span className="orbit orbit-a" /><span className="orbit orbit-b" /><span className="orbit orbit-c" />
           </div>
         </header>
 
@@ -41,9 +32,7 @@ const Dashboard = () => {
           <div className="panel-wrap float-card"><PriceCard /></div>
           <div className="panel-wrap float-card delay-one"><StatsCard /></div>
         </section>
-
         <section className="panel-wrap full-panel reveal-card"><ActiveTradeCard /></section>
-
         <section className="dashboard-grid dashboard-grid-mid">
           <div className="panel-wrap reveal-card"><SignalCard /></div>
           <div className="panel-wrap reveal-card delay-one"><PressureCard /></div>
@@ -51,14 +40,11 @@ const Dashboard = () => {
 
         <BacktestLab />
         <OutOfSampleValidation />
+        <WalkForwardResearch />
 
         <section className="panel-wrap full-panel reveal-card"><ChartCard /></section>
         <section className="panel-wrap full-panel reveal-card"><TradesTable /></section>
-
-        <footer className="dashboard-footer">
-          <span>BTC Bot Research Console</span>
-          <span>V2 execution analytics enabled</span>
-        </footer>
+        <footer className="dashboard-footer"><span>BTC Bot Research Console</span><span>V2 execution analytics enabled</span></footer>
       </div>
     </main>
   );
