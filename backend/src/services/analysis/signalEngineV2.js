@@ -22,8 +22,8 @@ const calculateRSI = (candles, period = 14) => {
 
   const avgGain = gains / period;
   const avgLoss = losses / period;
-
   if (avgLoss === 0) return 100;
+
   const rs = avgGain / avgLoss;
   return 100 - 100 / (1 + rs);
 };
@@ -35,11 +35,10 @@ const signalEngineV2 = (candles) => {
       score: 0,
       buyPressure: 50,
       sellPressure: 50,
-      strategyVersion: "v2-accuracy-candidate",
+      strategyVersion: "v2-accuracy-candidate-r2",
     };
   }
 
-  // Only the recent history is needed for feature calculations and keeps backtests fast.
   const recent = candles.slice(-320);
   const current = recent[recent.length - 1];
   const previous = recent[recent.length - 2];
@@ -74,29 +73,26 @@ const signalEngineV2 = (candles) => {
   const bullishEMA = current.close > ema200 && ema50 > ema200;
   const bearishEMA = current.close < ema200 && ema50 < ema200;
 
-  const bullishSlope = emaSlopeAtr > 0.025;
-  const bearishSlope = emaSlopeAtr < -0.025;
+  const bullishSlope = emaSlopeAtr > 0.01;
+  const bearishSlope = emaSlopeAtr < -0.01;
 
-  // Avoid entering after price has already stretched too far from the trend anchor.
-  const buyDistanceOk = emaDistanceAtr >= 0.15 && emaDistanceAtr <= 2.25;
-  const sellDistanceOk = emaDistanceAtr <= -0.15 && emaDistanceAtr >= -2.25;
+  const buyDistanceOk = emaDistanceAtr >= 0.05 && emaDistanceAtr <= 3.0;
+  const sellDistanceOk = emaDistanceAtr <= -0.05 && emaDistanceAtr >= -3.0;
 
-  // Require the setup candle itself to confirm direction rather than using volume alone.
   const buyCandleQuality =
     bullishCandle &&
-    bodyRatio >= 0.38 &&
-    closeLocation >= 0.62;
+    bodyRatio >= 0.28 &&
+    closeLocation >= 0.56;
 
   const sellCandleQuality =
     bearishCandle &&
-    bodyRatio >= 0.38 &&
-    closeLocation <= 0.38;
+    bodyRatio >= 0.28 &&
+    closeLocation <= 0.44;
 
-  const strongVolume = volume.ratio >= 1.35;
+  const strongVolume = volume.ratio >= 1.2;
 
-  // Momentum zones reject weak trends and very stretched entries.
-  const buyMomentum = rsi >= 53 && rsi <= 69;
-  const sellMomentum = rsi <= 47 && rsi >= 31;
+  const buyMomentum = rsi >= 50 && rsi <= 72;
+  const sellMomentum = rsi <= 50 && rsi >= 28;
 
   const buyStructure =
     structure.trend === "bullish" &&
@@ -112,28 +108,27 @@ const signalEngineV2 = (candles) => {
   const sellLiquidity =
     !liquidity.detected || liquidity.type === "bearish";
 
-  // A BOS is a bonus, not mandatory, because the swing detector confirms with delay.
   const buyBosBonus = structure.bos === "bullish";
   const sellBosBonus = structure.bos === "bearish";
 
   let buyScore = 0;
   let sellScore = 0;
 
-  if (buyStructure) buyScore += 20;
-  if (bullishEMA) buyScore += 18;
-  if (bullishSlope) buyScore += 12;
-  if (strongVolume) buyScore += 14;
-  if (buyCandleQuality) buyScore += 14;
+  if (buyStructure) buyScore += 24;
+  if (bullishEMA) buyScore += 20;
+  if (bullishSlope) buyScore += 10;
+  if (strongVolume) buyScore += 12;
+  if (buyCandleQuality) buyScore += 12;
   if (buyMomentum) buyScore += 10;
   if (buyDistanceOk) buyScore += 7;
   if (buyLiquidity) buyScore += 3;
   if (buyBosBonus) buyScore += 2;
 
-  if (sellStructure) sellScore += 20;
-  if (bearishEMA) sellScore += 18;
-  if (bearishSlope) sellScore += 12;
-  if (strongVolume) sellScore += 14;
-  if (sellCandleQuality) sellScore += 14;
+  if (sellStructure) sellScore += 24;
+  if (bearishEMA) sellScore += 20;
+  if (bearishSlope) sellScore += 10;
+  if (strongVolume) sellScore += 12;
+  if (sellCandleQuality) sellScore += 12;
   if (sellMomentum) sellScore += 10;
   if (sellDistanceOk) sellScore += 7;
   if (sellLiquidity) sellScore += 3;
@@ -142,30 +137,38 @@ const signalEngineV2 = (candles) => {
   buyScore = clamp(buyScore, 0, 100);
   sellScore = clamp(sellScore, 0, 100);
 
-  // Accuracy mode: all core filters must agree. This should reduce trade count materially.
+  const buyConfirmations = [
+    bullishSlope,
+    strongVolume,
+    buyCandleQuality,
+    buyMomentum,
+    buyDistanceOk,
+    buyLiquidity,
+  ].filter(Boolean).length;
+
+  const sellConfirmations = [
+    bearishSlope,
+    strongVolume,
+    sellCandleQuality,
+    sellMomentum,
+    sellDistanceOk,
+    sellLiquidity,
+  ].filter(Boolean).length;
+
+  // Weighted consensus instead of requiring every filter simultaneously.
   const canBuy =
     session.validTradingTime &&
     buyStructure &&
     bullishEMA &&
-    bullishSlope &&
-    strongVolume &&
-    buyCandleQuality &&
-    buyMomentum &&
-    buyDistanceOk &&
-    buyLiquidity &&
-    buyScore >= 88;
+    buyConfirmations >= 4 &&
+    buyScore >= 70;
 
   const canSell =
     session.validTradingTime &&
     sellStructure &&
     bearishEMA &&
-    bearishSlope &&
-    strongVolume &&
-    sellCandleQuality &&
-    sellMomentum &&
-    sellDistanceOk &&
-    sellLiquidity &&
-    sellScore >= 88;
+    sellConfirmations >= 4 &&
+    sellScore >= 70;
 
   let signal = "NONE";
   let entry = null;
@@ -173,17 +176,17 @@ const signalEngineV2 = (candles) => {
   let takeProfit1 = null;
   let takeProfit2 = null;
 
-  if (canBuy) {
+  if (canBuy && (!canSell || buyScore >= sellScore)) {
     signal = "BUY";
-    entry = current.close - atr * 0.2;
-    stopLoss = entry - atr * 2.2;
+    entry = current.close - atr * 0.25;
+    stopLoss = entry - atr * 2.3;
     const risk = entry - stopLoss;
     takeProfit1 = entry + risk;
     takeProfit2 = entry + risk * 2;
   } else if (canSell) {
     signal = "SELL";
-    entry = current.close + atr * 0.2;
-    stopLoss = entry + atr * 2.2;
+    entry = current.close + atr * 0.25;
+    stopLoss = entry + atr * 2.3;
     const risk = stopLoss - entry;
     takeProfit1 = entry - risk;
     takeProfit2 = entry - risk * 2;
@@ -194,7 +197,7 @@ const signalEngineV2 = (candles) => {
   const sellPressure = 100 - buyPressure;
 
   return {
-    strategyVersion: "v2-accuracy-candidate",
+    strategyVersion: "v2-accuracy-candidate-r2",
     signal,
     score: signal === "BUY" ? buyScore : signal === "SELL" ? sellScore : Math.max(buyScore, sellScore),
     buyScore,
@@ -217,6 +220,10 @@ const signalEngineV2 = (candles) => {
     emaSlopeAtr,
     emaDistanceAtr,
     bodyRatio,
+    confirmations: {
+      buy: buyConfirmations,
+      sell: sellConfirmations,
+    },
     reasons: {
       buyStructure,
       sellStructure,
@@ -237,6 +244,8 @@ const signalEngineV2 = (candles) => {
       sellBosBonus,
       previousBullish,
       previousBearish,
+      buyConfirmations,
+      sellConfirmations,
       rsi,
       emaSlopeAtr,
       emaDistanceAtr,
