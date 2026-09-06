@@ -6,6 +6,7 @@ import ChartCard from "../components/ChartCard";
 import ActiveTradeCard from "../components/ActiveTradeCard";
 import PressureCard from "../components/PressureCard";
 import BacktestLab from "../components/BacktestLab";
+import OutOfSampleValidation from "../components/OutOfSampleValidation";
 
 const Dashboard = () => {
   return (
@@ -49,6 +50,7 @@ const Dashboard = () => {
         </section>
 
         <BacktestLab />
+        <OutOfSampleValidation />
 
         <section className="panel-wrap full-panel reveal-card"><ChartCard /></section>
         <section className="panel-wrap full-panel reveal-card"><TradesTable /></section>
