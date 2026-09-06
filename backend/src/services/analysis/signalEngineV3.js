@@ -12,11 +12,13 @@ import {
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
 const signalEngineV3 = (candles) => {
-  if (!candles || candles.length < 320) {
+  // 1H EMA200 requires at least 800 x 15m candles. Keep extra history for
+  // stable higher-timeframe structure and complete UTC-aligned hourly bars.
+  if (!candles || candles.length < 840) {
     return { signal: "NONE", score: 0, buyPressure: 50, sellPressure: 50, strategyVersion: "v3-enhanced-research" };
   }
 
-  const recent = candles.slice(-640);
+  const recent = candles.slice(-1200);
   const current = recent.at(-1);
   const atr = calculateWilderATR(recent, 14);
   const ema50 = calculateEMAStandard(recent, 50);
@@ -27,7 +29,7 @@ const signalEngineV3 = (candles) => {
   const liquidity = detectLiquidityGrabV3(recent, structure, atr);
   const session = sessionFilterV3(current.openTime);
 
-  const oneHour = aggregateCandles(recent, 4);
+  const oneHour = aggregateCandles(recent, 4, 15);
   const structure1h = getMarketStructureV3(oneHour);
   const ema50_1h = calculateEMAStandard(oneHour, 50);
   const ema200_1h = calculateEMAStandard(oneHour, 200);
@@ -169,6 +171,7 @@ const signalEngineV3 = (candles) => {
       volumeBias: volume.directionalBias,
       liquidityQuality: liquidity.quality || 0,
       sessionActivity: session.activityScore,
+      oneHourCandles: oneHour.length,
       canBuy,
       canSell,
     },
