@@ -1,7 +1,7 @@
 import getMarketStructureV3 from "./marketStructureV3.js";
 import detectLiquidityGrabV3 from "./liquidityGrabV3.js";
 import volumeAnalysisV3 from "./volumeAnalysisV3.js";
-import sessionFilter from "./sessionFilter.js";
+import sessionFilterV3 from "./sessionFilterV3.js";
 import {
   aggregateCandles,
   calculateEMAStandard,
@@ -13,13 +13,7 @@ const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
 const signalEngineV3 = (candles) => {
   if (!candles || candles.length < 320) {
-    return {
-      signal: "NONE",
-      score: 0,
-      buyPressure: 50,
-      sellPressure: 50,
-      strategyVersion: "v3-enhanced-research",
-    };
+    return { signal: "NONE", score: 0, buyPressure: 50, sellPressure: 50, strategyVersion: "v3-enhanced-research" };
   }
 
   const recent = candles.slice(-640);
@@ -31,20 +25,15 @@ const signalEngineV3 = (candles) => {
   const structure = getMarketStructureV3(recent);
   const volume = volumeAnalysisV3(recent, 20);
   const liquidity = detectLiquidityGrabV3(recent, structure, atr);
-  const session = sessionFilter(current.openTime);
+  const session = sessionFilterV3(current.openTime);
 
   const oneHour = aggregateCandles(recent, 4);
   const structure1h = getMarketStructureV3(oneHour);
   const ema50_1h = calculateEMAStandard(oneHour, 50);
   const ema200_1h = calculateEMAStandard(oneHour, 200);
 
-  const bullish1h =
-    ["bullish", "bullish-transition"].includes(structure1h.trend) &&
-    ema50_1h != null && ema200_1h != null && ema50_1h > ema200_1h;
-
-  const bearish1h =
-    ["bearish", "bearish-transition"].includes(structure1h.trend) &&
-    ema50_1h != null && ema200_1h != null && ema50_1h < ema200_1h;
+  const bullish1h = ["bullish", "bullish-transition"].includes(structure1h.trend) && ema50_1h != null && ema200_1h != null && ema50_1h > ema200_1h;
+  const bearish1h = ["bearish", "bearish-transition"].includes(structure1h.trend) && ema50_1h != null && ema200_1h != null && ema50_1h < ema200_1h;
 
   const emaDistanceAtr = atr > 0 ? (current.close - ema200) / atr : 0;
   const ema50DistanceAtr = atr > 0 ? (current.close - ema50) / atr : 0;
@@ -63,6 +52,7 @@ const signalEngineV3 = (candles) => {
   const notChasingBuy = ema50DistanceAtr >= -0.4 && ema50DistanceAtr <= 2.0;
   const notChasingSell = ema50DistanceAtr <= 0.4 && ema50DistanceAtr >= -2.0;
   const volatilityOk = atrPct >= 0.12 && atrPct <= 2.5;
+  const activeSession = session.activityScore >= 60;
 
   let buyScore = 0;
   let sellScore = 0;
@@ -78,6 +68,7 @@ const signalEngineV3 = (candles) => {
   if (structure.choch === "bullish") buyScore += 4;
   if (notChasingBuy) buyScore += 5;
   if (volatilityOk) buyScore += 4;
+  if (activeSession) buyScore += 4;
 
   if (bearishTrend) sellScore += 18;
   if (bearishEMA) sellScore += 14;
@@ -90,32 +81,13 @@ const signalEngineV3 = (candles) => {
   if (structure.choch === "bearish") sellScore += 4;
   if (notChasingSell) sellScore += 5;
   if (volatilityOk) sellScore += 4;
+  if (activeSession) sellScore += 4;
 
   buyScore = clamp(Math.round(buyScore), 0, 100);
   sellScore = clamp(Math.round(sellScore), 0, 100);
 
-  // Core alignment is mandatory; the rest contributes through weighted confirmation.
-  const canBuy =
-    session.validTradingTime &&
-    bullishTrend &&
-    bullishEMA &&
-    bullish1h &&
-    bullishVolume &&
-    bullishLiquidity &&
-    notChasingBuy &&
-    volatilityOk &&
-    buyScore >= 72;
-
-  const canSell =
-    session.validTradingTime &&
-    bearishTrend &&
-    bearishEMA &&
-    bearish1h &&
-    bearishVolume &&
-    bearishLiquidity &&
-    notChasingSell &&
-    volatilityOk &&
-    sellScore >= 72;
+  const canBuy = bullishTrend && bullishEMA && bullish1h && bullishVolume && bullishLiquidity && notChasingBuy && volatilityOk && buyScore >= 72;
+  const canSell = bearishTrend && bearishEMA && bearish1h && bearishVolume && bearishLiquidity && notChasingSell && volatilityOk && sellScore >= 72;
 
   let signal = "NONE";
   let entry = null;
@@ -186,6 +158,7 @@ const signalEngineV3 = (candles) => {
       notChasingBuy,
       notChasingSell,
       volatilityOk,
+      activeSession,
       bos: structure.bos,
       choch: structure.choch,
       regime: structure.regime,
@@ -195,6 +168,7 @@ const signalEngineV3 = (candles) => {
       volumeRatio: volume.ratio,
       volumeBias: volume.directionalBias,
       liquidityQuality: liquidity.quality || 0,
+      sessionActivity: session.activityScore,
       canBuy,
       canSell,
     },
