@@ -113,6 +113,49 @@ const AnalyzerTable = ({ title, rows = [], labelKey = "value" }) => {
   );
 };
 
+const CombinationTable = ({ title, rows = [], emptyText }) => (
+  <div className="backtest-result-block">
+    <div className="lab-version-row">
+      <span>{title}</span>
+      <span>Intersection analysis · minimum 10 trades</span>
+    </div>
+    {!rows.length ? (
+      <div className="lab-footnote"><span>{emptyText}</span></div>
+    ) : (
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900 }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: "left", padding: 10 }}>Combined Conditions</th>
+              <th style={{ textAlign: "right", padding: 10 }}>Trades</th>
+              <th style={{ textAlign: "right", padding: 10 }}>Coverage</th>
+              <th style={{ textAlign: "right", padding: 10 }}>Win Rate</th>
+              <th style={{ textAlign: "right", padding: 10 }}>WR Lift</th>
+              <th style={{ textAlign: "right", padding: 10 }}>Expectancy</th>
+              <th style={{ textAlign: "right", padding: 10 }}>PF</th>
+              <th style={{ textAlign: "right", padding: 10 }}>Total R</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row.conditionIds?.join("-")}-${index}`}>
+                <td style={{ padding: 10 }}>{row.conditions?.join(" + ") || "—"}</td>
+                <td style={{ textAlign: "right", padding: 10 }}>{row.trades}</td>
+                <td style={{ textAlign: "right", padding: 10 }}>{row.coveragePct}%</td>
+                <td style={{ textAlign: "right", padding: 10 }}><strong>{row.winRate}%</strong></td>
+                <td style={{ textAlign: "right", padding: 10 }}>{row.winRateLift >= 0 ? "+" : ""}{row.winRateLift}%</td>
+                <td style={{ textAlign: "right", padding: 10 }}>{row.expectancyR} R</td>
+                <td style={{ textAlign: "right", padding: 10 }}>{formatPF(row.profitFactor)}</td>
+                <td style={{ textAlign: "right", padding: 10 }}>{row.totalR} R</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+);
+
 const BacktestAnalyzer = ({ diagnostics, baselineWinRate }) => {
   const insights = useMemo(() => {
     if (!diagnostics?.breakdowns) return { best: [], worst: [] };
@@ -142,6 +185,7 @@ const BacktestAnalyzer = ({ diagnostics, baselineWinRate }) => {
   const winner = diagnostics.winnerAverages || {};
   const loser = diagnostics.loserAverages || {};
   const breakdowns = diagnostics.breakdowns || {};
+  const intersections = diagnostics.intersections || {};
 
   return (
     <div className="backtest-comparison-block">
@@ -157,12 +201,30 @@ const BacktestAnalyzer = ({ diagnostics, baselineWinRate }) => {
         <Metric label="Loser RSI Avg" value={loser.rsi ?? "—"} />
         <Metric label="Winner Volume Avg" value={winner.volumeRatio ?? "—"} />
         <Metric label="Loser Volume Avg" value={loser.volumeRatio ?? "—"} />
-        <Metric label="Sample Size" value={diagnostics.sampleSize} />
+        <Metric label="Combos Tested" value={intersections.testedCombinations ?? 0} />
       </div>
+
+      <CombinationTable
+        title="ROBUST COMBINATIONS"
+        rows={intersections.robust || []}
+        emptyText="No multi-factor combination beat V2 on win rate, expectancy and profit factor with at least 10 trades."
+      />
+
+      <CombinationTable
+        title="70%+ ACCURACY CANDIDATES"
+        rows={intersections.highAccuracy || []}
+        emptyText="No 70%+ combination has enough sample quality in this window. Do not force one."
+      />
+
+      <CombinationTable
+        title="HARMFUL COMBINATIONS"
+        rows={intersections.harmful || []}
+        emptyText="No clearly harmful multi-factor combination found with at least 10 trades."
+      />
 
       <div className="direction-grid">
         <div className="direction-card buy">
-          <div className="direction-title"><span>BEST CONDITIONS</span><strong>10+ trades</strong></div>
+          <div className="direction-title"><span>BEST SINGLE CONDITIONS</span><strong>10+ trades</strong></div>
           <div className="direction-meta">
             {insights.best.length ? insights.best.map((row, index) => (
               <span key={`${row.group}-${row.label}-${index}`}>
@@ -173,7 +235,7 @@ const BacktestAnalyzer = ({ diagnostics, baselineWinRate }) => {
         </div>
 
         <div className="direction-card sell">
-          <div className="direction-title"><span>WORST CONDITIONS</span><strong>10+ trades</strong></div>
+          <div className="direction-title"><span>WORST SINGLE CONDITIONS</span><strong>10+ trades</strong></div>
           <div className="direction-meta">
             {insights.worst.length ? insights.worst.map((row, index) => (
               <span key={`${row.group}-${row.label}-${index}`}>
@@ -198,8 +260,8 @@ const BacktestAnalyzer = ({ diagnostics, baselineWinRate }) => {
       <AnalyzerTable title="UTC HOUR" rows={breakdowns.utcHour || []} />
 
       <div className="lab-footnote">
-        <span>Do not trust tiny buckets. Conditions with fewer than 10 trades are excluded from Best/Worst ranking.</span>
-        <span>A future V2 improvement should raise win rate without reducing expectancy, PF, or sample quality.</span>
+        <span>Intersection results are in-sample research, not proof. A 70% row is only a candidate until it survives separate historical windows.</span>
+        <span>Conditions with fewer than 10 trades are excluded. V2 trading logic remains unchanged.</span>
       </div>
     </div>
   );
@@ -235,7 +297,7 @@ const BacktestLab = () => {
         <div>
           <div className="eyebrow">V2 RESEARCH · LATEST 10K CANDLES</div>
           <h2>V2 Strategy Lab</h2>
-          <p>V2 is the only active strategy. Run the backtest to refresh performance and automatically study which market conditions helped winners and hurt losers.</p>
+          <p>Run V2 to refresh performance and automatically discover which combinations of market conditions actually improved or damaged its historical outcomes.</p>
         </div>
         <div className="backtest-action-row">
           <button className="run-backtest-btn" onClick={runBacktest} disabled={loading}>
@@ -252,7 +314,7 @@ const BacktestLab = () => {
           <div className="orbital-loader"><span /></div>
           <div>
             <strong>V2 analyzer ready</strong>
-            <p>Run V2 once. The Winner vs Loser Analyzer will appear below the backtest result automatically.</p>
+            <p>Run V2 once. Robust combinations, 70%+ candidates and harmful intersections will appear automatically.</p>
           </div>
         </div>
       )}
