@@ -1,6 +1,7 @@
 import Candle15m from "../models/Candle15m.js";
 import signalEngine from "../services/analysis/signalEngine.js";
 import signalEngineV2 from "../services/analysis/signalEngineV2.js";
+import buildBacktestDiagnostics from "../services/analysis/backtestDiagnostics.js";
 
 const BACKTEST_CANDLE_LIMIT = 10000;
 
@@ -22,7 +23,6 @@ export const runBacktest = async (req, res) => {
     const useAccuracyEngine = req.query.engine === "accuracy";
     const selectedSignalEngine = useAccuracyEngine ? signalEngineV2 : signalEngine;
 
-    // Keep research runs fast and repeatable: always use only the newest 10,000 15m candles.
     const newestCandles = await Candle15m.find()
       .sort({ openTime: -1 })
       .limit(BACKTEST_CANDLE_LIMIT)
@@ -72,10 +72,9 @@ export const runBacktest = async (req, res) => {
         const candle = candles[j];
 
         if (!filled) {
-          const entryTouched =
-            signal.signal === "BUY"
-              ? candle.low <= signal.entry
-              : candle.high >= signal.entry;
+          const entryTouched = signal.signal === "BUY"
+            ? candle.low <= signal.entry
+            : candle.high >= signal.entry;
 
           if (!entryTouched) continue;
 
@@ -262,14 +261,14 @@ export const runBacktest = async (req, res) => {
       return acc;
     }, {});
 
+    const diagnostics = buildBacktestDiagnostics(tradeLogs, candles);
+
     res.json({
       engine: useAccuracyEngine ? "signalEngineV2" : "signalEngine",
-      backtestVersion: useAccuracyEngine
-        ? "v2-accuracy-candidate-10k"
-        : "v2-execution-10k",
+      backtestVersion: useAccuracyEngine ? "v2-accuracy-candidate-10k" : "v2-execution-10k",
       note: useAccuracyEngine
         ? "Accuracy-focused candidate using stricter trend, EMA slope, directional candle, volume, RSI, distance and liquidity filters. Research only; not live trading."
-        : "Uses only the latest 10,000 stored 15m candles with corrected entry-fill and conservative same-candle execution handling.",
+        : "Uses only the latest 10,000 stored 15m candles with corrected entry-fill and conservative same-candle execution handling. Includes winner-vs-loser diagnostics computed without changing signal selection.",
       candleLimit: BACKTEST_CANDLE_LIMIT,
       candleCount: candles.length,
       windowStartTime: candles[0]?.openTime,
@@ -287,6 +286,7 @@ export const runBacktest = async (req, res) => {
       expectancyR: round(expectancyR),
       profitFactor: round(profitFactor),
       byDirection,
+      diagnostics,
       tradeLogs,
     });
   } catch (error) {
