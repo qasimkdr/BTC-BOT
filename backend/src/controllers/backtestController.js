@@ -1,6 +1,5 @@
 import Candle15m from "../models/Candle15m.js";
 import signalEngine from "../services/analysis/signalEngine.js";
-import signalEngineV2 from "../services/analysis/signalEngineV2.js";
 import buildBacktestDiagnostics from "../services/analysis/backtestDiagnostics.js";
 
 const BACKTEST_CANDLE_LIMIT = 10000;
@@ -20,9 +19,6 @@ const getR = (result) => {
 
 export const runBacktest = async (req, res) => {
   try {
-    const useAccuracyEngine = req.query.engine === "accuracy";
-    const selectedSignalEngine = useAccuracyEngine ? signalEngineV2 : signalEngine;
-
     const newestCandles = await Candle15m.find()
       .sort({ openTime: -1 })
       .limit(BACKTEST_CANDLE_LIMIT)
@@ -32,7 +28,7 @@ export const runBacktest = async (req, res) => {
 
     if (candles.length < 252) {
       return res.status(400).json({
-        message: "Not enough 15m candles to run backtest",
+        message: "Not enough 15m candles to run V2 backtest",
         candleCount: candles.length,
         minimumRequired: 252,
       });
@@ -50,7 +46,7 @@ export const runBacktest = async (req, res) => {
 
     while (i < candles.length - 1) {
       const history = candles.slice(0, i + 1);
-      const signal = selectedSignalEngine(history);
+      const signal = signalEngine(history);
 
       if (!signal || signal.signal === "NONE") {
         i++;
@@ -75,9 +71,7 @@ export const runBacktest = async (req, res) => {
           const entryTouched = signal.signal === "BUY"
             ? candle.low <= signal.entry
             : candle.high >= signal.entry;
-
           if (!entryTouched) continue;
-
           filled = true;
           fillTime = candle.openTime;
         }
@@ -87,7 +81,6 @@ export const runBacktest = async (req, res) => {
         if (signal.signal === "BUY") {
           mfePoints = Math.max(mfePoints, candle.high - signal.entry);
           maePoints = Math.max(maePoints, signal.entry - candle.low);
-
           const hitsStop = candle.low <= stopLoss;
           const hitsTp1 = candle.high >= signal.takeProfit1;
           const hitsTp2 = candle.high >= signal.takeProfit2;
@@ -99,7 +92,6 @@ export const runBacktest = async (req, res) => {
             tradeClosedAt = j;
             break;
           }
-
           if (tp1Hit && hitsStop && hitsTp2) {
             tradeAmbiguous = true;
             ambiguousBars++;
@@ -107,26 +99,22 @@ export const runBacktest = async (req, res) => {
             tradeClosedAt = j;
             break;
           }
-
           if (!tp1Hit && hitsStop) {
             result = "LOSS";
             tradeClosedAt = j;
             break;
           }
-
           if (hitsTp2) {
             tp1Hit = true;
             result = "TP2_WIN";
             tradeClosedAt = j;
             break;
           }
-
           if (!tp1Hit && hitsTp1) {
             tp1Hit = true;
             stopLoss = signal.takeProfit1;
             continue;
           }
-
           if (tp1Hit && hitsStop) {
             result = "TP1_WIN";
             tradeClosedAt = j;
@@ -135,7 +123,6 @@ export const runBacktest = async (req, res) => {
         } else {
           mfePoints = Math.max(mfePoints, signal.entry - candle.low);
           maePoints = Math.max(maePoints, candle.high - signal.entry);
-
           const hitsStop = candle.high >= stopLoss;
           const hitsTp1 = candle.low <= signal.takeProfit1;
           const hitsTp2 = candle.low <= signal.takeProfit2;
@@ -147,7 +134,6 @@ export const runBacktest = async (req, res) => {
             tradeClosedAt = j;
             break;
           }
-
           if (tp1Hit && hitsStop && hitsTp2) {
             tradeAmbiguous = true;
             ambiguousBars++;
@@ -155,26 +141,22 @@ export const runBacktest = async (req, res) => {
             tradeClosedAt = j;
             break;
           }
-
           if (!tp1Hit && hitsStop) {
             result = "LOSS";
             tradeClosedAt = j;
             break;
           }
-
           if (hitsTp2) {
             tp1Hit = true;
             result = "TP2_WIN";
             tradeClosedAt = j;
             break;
           }
-
           if (!tp1Hit && hitsTp1) {
             tp1Hit = true;
             stopLoss = signal.takeProfit1;
             continue;
           }
-
           if (tp1Hit && hitsStop) {
             result = "TP1_WIN";
             tradeClosedAt = j;
@@ -188,7 +170,6 @@ export const runBacktest = async (req, res) => {
         i++;
         continue;
       }
-
       if (!result) {
         unresolved++;
         i++;
@@ -210,15 +191,11 @@ export const runBacktest = async (req, res) => {
         filled,
         signal: signal.signal,
         score: signal.score,
-        strategyVersion: signal.strategyVersion || "legacy-signal",
+        strategyVersion: "v2-current",
         trend: signal.structure?.trend,
         liquidity: signal.liquidity?.detected,
         liquidityType: signal.liquidity?.type,
         volumeRatio: signal.volume?.ratio,
-        rsi: signal.rsi,
-        emaSlopeAtr: signal.emaSlopeAtr,
-        emaDistanceAtr: signal.emaDistanceAtr,
-        bodyRatio: signal.bodyRatio,
         entry: signal.entry,
         stopLoss: signal.stopLoss,
         takeProfit1: signal.takeProfit1,
@@ -264,11 +241,9 @@ export const runBacktest = async (req, res) => {
     const diagnostics = buildBacktestDiagnostics(tradeLogs, candles);
 
     res.json({
-      engine: useAccuracyEngine ? "signalEngineV2" : "signalEngine",
-      backtestVersion: useAccuracyEngine ? "v2-accuracy-candidate-10k" : "v2-execution-10k",
-      note: useAccuracyEngine
-        ? "Accuracy-focused candidate using stricter trend, EMA slope, directional candle, volume, RSI, distance and liquidity filters. Research only; not live trading."
-        : "Uses only the latest 10,000 stored 15m candles with corrected entry-fill and conservative same-candle execution handling. Includes winner-vs-loser diagnostics computed without changing signal selection.",
+      engine: "signalEngine",
+      backtestVersion: "v2-execution-10k",
+      note: "V2 is the only active backtest strategy. Uses the latest 10,000 stored 15m candles with corrected entry-fill, conservative same-candle execution handling, and winner-vs-loser diagnostics.",
       candleLimit: BACKTEST_CANDLE_LIMIT,
       candleCount: candles.length,
       windowStartTime: candles[0]?.openTime,
