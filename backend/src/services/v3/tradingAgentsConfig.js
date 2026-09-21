@@ -5,7 +5,7 @@ export const tradingAgentsV3Config = Object.freeze({
   deepModel:process.env.V3_LLM_DEEP_MODEL||process.env.V3_LLM_MODEL||"gpt-5",
   maxDebateRounds:int("V3_MAX_DEBATE_ROUNDS",1,1,5),
   maxRiskRounds:int("V3_MAX_RISK_ROUNDS",1,1,5),
-  workflow:["market_analyst","sentiment_analyst","news_analyst","crypto_fundamentals_analyst","bull_researcher","bear_researcher","research_manager","trader","risk_debate","final_risk_manager","reflection_memory"],
+  workflow:["market_analyst","sentiment_analyst","social_analyst","news_analyst","crypto_fundamentals_analyst","bull_researcher","bear_researcher","research_manager","trader","risk_debate","final_risk_manager","reflection_memory"],
   decisions:["BUY","SELL","SKIP"],
   execution:{liveEnabled:false,management:"V2_TP1_LOCK"},
 });
