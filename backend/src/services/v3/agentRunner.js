@@ -8,8 +8,8 @@ import { getCryptoNewsContext } from "./newsContext.js";
 import { getSimilarV3Memories } from "./similarMemory.js";
 import { buildV2EquivalentPlan } from "./executionPlan.js";
 
-const safe = async (prompt,payload) => {
-  try { return await invokeV3LLM(prompt,payload); }
+const safe = async (prompt,payload,tier="quick") => {
+  try { return await invokeV3LLM(prompt,payload,tier); }
   catch (error) { return { unavailable: true, error: error.message }; }
 };
 
@@ -24,20 +24,29 @@ export async function runTradingAgentsShadow() {
   const cryptoFundamentals = await safe(V3_PROMPTS.cryptoFundamentals,{derivativesContext:cryptoIntelligence.derivatives,market24h:cryptoIntelligence.spot24h,marketSnapshot});
   const reports = {market,sentiment,news,cryptoFundamentals};
 
-  const bull = await safe(V3_PROMPTS.bull,{reports});
-  const bear = await safe(V3_PROMPTS.bear,{reports,bullOpening:bull});
-  const bullReply = await safe(V3_PROMPTS.bull,{reports,bearArgument:bear,bullOpening:bull});
-  const bearReply = await safe(V3_PROMPTS.bear,{reports,bullArgument:bullReply,bearOpening:bear});
-  const researchManager = await safe(V3_PROMPTS.researchManager,{reports,debate:{bull,bear,bullReply,bearReply}});
-  const investmentDebate = {bull,bear,bullReply,bearReply,researchManager};
+  const debate = { bull: [], bear: [] };
+  let bullContext=null, bearContext=null;
+  for(let round=0; round<tradingAgentsV3Config.maxDebateRounds; round++){
+    const bull=await safe(V3_PROMPTS.bull,{reports,round:round+1,priorBull:bullContext,opponent:bearContext},"deep");
+    debate.bull.push(bull); bullContext=bull;
+    const bear=await safe(V3_PROMPTS.bear,{reports,round:round+1,priorBear:bearContext,opponent:bullContext},"deep");
+    debate.bear.push(bear); bearContext=bear;
+  }
+  const researchManager = await safe(V3_PROMPTS.researchManager,{reports,debate},"deep");
+  const investmentDebate = {...debate,researchManager};
 
-  const traderPlan = await safe(V3_PROMPTS.trader,{marketSnapshot,researchManager,marketReport:market});
+  const traderPlan = await safe(V3_PROMPTS.trader,{marketSnapshot,researchManager,marketReport:market},"deep");
 
-  const aggressive = await safe(V3_PROMPTS.aggressiveRisk,{traderPlan,reports,marketSnapshot});
-  const conservative = await safe(V3_PROMPTS.conservativeRisk,{traderPlan,reports,marketSnapshot});
-  const neutral = await safe(V3_PROMPTS.neutralRisk,{traderPlan,reports,marketSnapshot});
-  const finalRiskManager = await safe(V3_PROMPTS.finalRisk,{traderPlan,riskDebate:{aggressive,conservative,neutral},marketSnapshot});
-  const riskDebate = {aggressive,conservative,neutral,finalRiskManager};
+  const riskRounds=[];
+  let priorRisk=null;
+  for(let round=0; round<tradingAgentsV3Config.maxRiskRounds; round++){
+    const aggressive=await safe(V3_PROMPTS.aggressiveRisk,{traderPlan,reports,marketSnapshot,round:round+1,priorRisk},"deep");
+    const conservative=await safe(V3_PROMPTS.conservativeRisk,{traderPlan,reports,marketSnapshot,round:round+1,aggressive,priorRisk},"deep");
+    const neutral=await safe(V3_PROMPTS.neutralRisk,{traderPlan,reports,marketSnapshot,round:round+1,aggressive,conservative,priorRisk},"deep");
+    priorRisk={aggressive,conservative,neutral}; riskRounds.push(priorRisk);
+  }
+  const finalRiskManager = await safe(V3_PROMPTS.finalRisk,{traderPlan,riskDebate:riskRounds,marketSnapshot},"deep");
+  const riskDebate = {rounds:riskRounds,finalRiskManager};
 
   const reflection = await safe(V3_PROMPTS.reflection,{current:{marketSnapshot,reports,traderPlan,finalRiskManager},prior});
   const decision = ["BUY","SELL"].includes(finalRiskManager?.decision) ? finalRiskManager.decision : "SKIP";
