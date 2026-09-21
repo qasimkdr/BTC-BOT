@@ -6,6 +6,8 @@ import { getV3Performance } from "../services/v3/performance.js";
 
 export async function runV3Shadow(req,res) {
   try {
+    if (process.env.V3_SHADOW_ENABLED !== "true") return res.status(409).json({error:"V3 shadow mode is disabled"});
+    if (!process.env.V3_LLM_API_KEY) return res.status(503).json({error:"V3 LLM is not configured"});
     const state = await runTradingAgentsShadow();
     const saved = await V3Decision.findOneAndUpdate(
       { strategyVersion: state.strategyVersion, candleTime: state.candleTime },
