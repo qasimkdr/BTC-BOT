@@ -10,6 +10,7 @@ import { initializeSocket } from "./socket/socketServer.js";
 
 import startMexcWebSocket from "./services/mexc/websocket.js";
 import { startV3ShadowScanner } from "./services/v3/shadowScanner.js";
+import { backfillV3Candles } from "./services/v3/candleBackfill.js";
 
 
 const PORT = process.env.PORT || 5000;
@@ -31,6 +32,7 @@ const startServer = async () => {
 
     // Binance WebSocket
     startMexcWebSocket();
+    if (process.env.V3_SHADOW_ENABLED === "true") await backfillV3Candles();
     startV3ShadowScanner();
 
     // Start Server
