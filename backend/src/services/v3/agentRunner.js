@@ -5,6 +5,7 @@ import { buildBtcMarketContext } from "./btcMarketContext.js";
 import tradingAgentsV3Config from "./tradingAgentsConfig.js";
 import { getCryptoIntelligence } from "./cryptoIntelligence.js";
 import { getCryptoNewsContext } from "./newsContext.js";
+import { getSimilarV3Memories } from "./similarMemory.js";
 
 const safe = async (prompt,payload) => {
   try { return await invokeV3LLM(prompt,payload); }
@@ -14,8 +15,7 @@ const safe = async (prompt,payload) => {
 export async function runTradingAgentsShadow() {
   const marketSnapshot = await buildBtcMarketContext();
   const [cryptoIntelligence, newsContext] = await Promise.all([getCryptoIntelligence(), getCryptoNewsContext()]);
-  const prior = await V3Decision.find({ strategyVersion: tradingAgentsV3Config.strategyVersion, shadowOutcome: {$ne:null} })
-    .sort({candleTime:-1}).limit(20).lean();
+  const prior = await getSimilarV3Memories({...marketSnapshot,cryptoIntelligence}, 8);
 
   const market = await safe(V3_PROMPTS.market,{marketSnapshot});
   const sentiment = await safe(V3_PROMPTS.sentiment,{sentimentContext:cryptoIntelligence.sentiment,market24h:cryptoIntelligence.spot24h});
