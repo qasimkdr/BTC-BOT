@@ -14,6 +14,7 @@ const v3DecisionSchema = new mongoose.Schema({
   confidence: { type: Number, default: 0 },
   rationale: { type: String, default: "" },
   reflection: { type: mongoose.Schema.Types.Mixed, default: {} },
+  shadowPlan: { type: mongoose.Schema.Types.Mixed, default: null },
   shadowOutcome: { type: mongoose.Schema.Types.Mixed, default: null },
 }, { timestamps: true });
 
