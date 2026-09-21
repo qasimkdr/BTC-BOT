@@ -6,6 +6,7 @@ import tradingAgentsV3Config from "./tradingAgentsConfig.js";
 import { getCryptoIntelligence } from "./cryptoIntelligence.js";
 import { getCryptoNewsContext } from "./newsContext.js";
 import { getSimilarV3Memories } from "./similarMemory.js";
+import { buildV2EquivalentPlan } from "./executionPlan.js";
 
 const safe = async (prompt,payload) => {
   try { return await invokeV3LLM(prompt,payload); }
@@ -40,12 +41,14 @@ export async function runTradingAgentsShadow() {
 
   const reflection = await safe(V3_PROMPTS.reflection,{current:{marketSnapshot,reports,traderPlan,finalRiskManager},prior});
   const decision = ["BUY","SELL"].includes(finalRiskManager?.decision) ? finalRiskManager.decision : "SKIP";
+  const shadowPlan = buildV2EquivalentPlan(decision, marketSnapshot);
 
   return {
     strategyVersion: tradingAgentsV3Config.strategyVersion, symbol:"BTCUSDT", candleTime:marketSnapshot.candleTime,
     mode:"SHADOW", marketSnapshot:{...marketSnapshot,cryptoIntelligence,newsContext}, analystReports:reports, investmentDebate, traderPlan, riskDebate,
     finalDecision:decision, confidence:Number(finalRiskManager?.confidence)||0,
     rationale:finalRiskManager?.rationale || "Risk manager did not approve a directional shadow decision.",
+    shadowPlan,
     reflection,
   };
 }
