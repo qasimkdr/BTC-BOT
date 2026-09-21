@@ -18,5 +18,5 @@ const v3DecisionSchema = new mongoose.Schema({
   shadowOutcome: { type: mongoose.Schema.Types.Mixed, default: null },
 }, { timestamps: true });
 
-v3DecisionSchema.index({ strategyVersion: 1, candleTime: -1 });
+v3DecisionSchema.index({ strategyVersion: 1, candleTime: -1 }, { unique: true });
 export default mongoose.model("V3Decision", v3DecisionSchema);
