@@ -1,5 +1,7 @@
 import V3Decision from "../../models/V3Decision.js";
 import Candle15m from "../../models/Candle15m.js";
+import { invokeV3LLM } from "./llmClient.js";
+import { V3_PROMPTS } from "./prompts.js";
 
 const MAX_BARS=Math.max(Number(process.env.V3_EXECUTION_MAX_BARS)||96,8);
 
