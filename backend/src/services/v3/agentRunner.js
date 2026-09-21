@@ -21,7 +21,9 @@ export async function runTradingAgentsShadow() {
 
   const market = await safe(V3_PROMPTS.market,{marketSnapshot});
   const sentiment = await safe(V3_PROMPTS.sentiment,{sentimentContext:cryptoIntelligence.sentiment,market24h:cryptoIntelligence.spot24h});
-  const social = await safe(V3_PROMPTS.social,{socialContext});
+  const social = socialContext.available
+    ? await safe(V3_PROMPTS.social,{socialContext})
+    : { unavailable:true, confidence:"LOW", reason:socialContext.reason, evidence:[], limitations:[socialContext.reason] };
   const news = await safe(V3_PROMPTS.news,{newsContext});
   const cryptoFundamentals = await safe(V3_PROMPTS.cryptoFundamentals,{derivativesContext:cryptoIntelligence.derivatives,market24h:cryptoIntelligence.spot24h,marketSnapshot});
   const reports = {market,sentiment,social,news,cryptoFundamentals};
