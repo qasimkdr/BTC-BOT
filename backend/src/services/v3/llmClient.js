@@ -6,7 +6,7 @@ const extractJson=text=>{try{return JSON.parse(text)}catch{}const m=String(text|
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const fallbackModels=tier=>{
  const configured=(tier==="deep"?process.env.V3_LLM_DEEP_FALLBACK_MODELS:process.env.V3_LLM_QUICK_FALLBACK_MODELS)||process.env.V3_LLM_FALLBACK_MODELS;
- const defaults=endpoint().includes("generativelanguage.googleapis.com")?"gemini-3.8-flash,gemini-3.7-flash,gemini-3.5-flash-lite":"";
+ const defaults=endpoint().includes("generativelanguage.googleapis.com")?"":"";
  return String(configured??defaults).split(",").map(x=>x.trim()).filter(Boolean);
 };
 const modelChain=tier=>[primaryModel(tier),...fallbackModels(tier)].filter((v,i,a)=>a.indexOf(v)===i);
@@ -36,7 +36,7 @@ export async function invokeV3LLM(system,payload,tier="quick"){
   }catch(error){
    last=error;
    const canFallback=error?.status===429||error?.status===503||error?.status===404||error?.name==="AbortError";
-   if(!canFallback||i===chain.length-1)throw error;
+   if(!canFallback||i===chain.length-1){console.error(`V3 LLM failed on ${chain[i]}: ${error.message}`);throw error;} console.warn(`V3 LLM ${chain[i]} unavailable: ${error.message}`);
   }
  }
  throw last;
