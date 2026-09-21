@@ -40,8 +40,9 @@ export async function settleV3ShadowOutcomes(){
  let settled=0;
  for(const d of pending){
   const future=await Candle15m.find({openTime:{$gt:d.candleTime}}).sort({openTime:1}).limit(MAX_BARS).lean();
-  if(future.length<MAX_BARS)continue;
+  if(!future.length) continue;
   const result=simulate(d.shadowPlan,future);
+  if(["UNFILLED","UNRESOLVED"].includes(result.status) && future.length<MAX_BARS) continue;
   d.shadowOutcome={...result,managementPlan:"TP1_LOCK_TO_TP1",maxBars:MAX_BARS,won:Number(result.r)>0,settledAt:Date.now()};
   await d.save();settled++;
  }
