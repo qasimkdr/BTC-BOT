@@ -23,6 +23,7 @@ export async function runTradingAgentsShadow() {
   const news = await safe(V3_PROMPTS.news,{newsContext});
   const cryptoFundamentals = await safe(V3_PROMPTS.cryptoFundamentals,{derivativesContext:cryptoIntelligence.derivatives,market24h:cryptoIntelligence.spot24h,marketSnapshot});
   const reports = {market,sentiment,news,cryptoFundamentals};
+  if (market?.unavailable) throw new Error(`V3 market analyst unavailable: ${market.error}`);
 
   const debate = { bull: [], bear: [] };
   let bullContext=null, bearContext=null;
@@ -49,14 +50,15 @@ export async function runTradingAgentsShadow() {
   const riskDebate = {rounds:riskRounds,finalRiskManager};
 
   const reflection = await safe(V3_PROMPTS.reflection,{current:{marketSnapshot,reports,traderPlan,finalRiskManager},prior});
-  const decision = ["BUY","SELL"].includes(finalRiskManager?.decision) ? finalRiskManager.decision : "SKIP";
+  const requiredUnavailable = [researchManager,traderPlan,finalRiskManager].some(x=>x?.unavailable);
+  const decision = !requiredUnavailable && ["BUY","SELL"].includes(finalRiskManager?.decision) ? finalRiskManager.decision : "SKIP";
   const shadowPlan = buildV2EquivalentPlan(decision, marketSnapshot);
 
   return {
     strategyVersion: tradingAgentsV3Config.strategyVersion, symbol:"BTCUSDT", candleTime:marketSnapshot.candleTime,
     mode:"SHADOW", marketSnapshot:{...marketSnapshot,cryptoIntelligence,newsContext}, analystReports:reports, investmentDebate, traderPlan, riskDebate,
     finalDecision:decision, confidence:Number(finalRiskManager?.confidence)||0,
-    rationale:finalRiskManager?.rationale || "Risk manager did not approve a directional shadow decision.",
+    rationale: requiredUnavailable ? "Critical V3 reasoning stage unavailable; forced SKIP." : (finalRiskManager?.rationale || "Risk manager did not approve a directional shadow decision."),
     shadowPlan,
     reflection,
   };
