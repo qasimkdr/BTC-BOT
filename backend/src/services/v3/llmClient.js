@@ -1,4 +1,4 @@
-const endpoint=()=>process.env.V3_LLM_BASE_URL||"https://api.openai.com/v1";
+const endpoint=()=>String(process.env.V3_LLM_BASE_URL||"https://api.openai.com/v1").replace(/\/+$/,"");
 const model=tier=>tier==="deep"?(process.env.V3_LLM_DEEP_MODEL||process.env.V3_LLM_MODEL||"gpt-5"):(process.env.V3_LLM_QUICK_MODEL||process.env.V3_LLM_MODEL||"gpt-5-mini");
 const timeoutMs=()=>Math.max(Number(process.env.V3_LLM_TIMEOUT_MS)||45000,5000);
 const retries=()=>Math.min(Math.max(Number(process.env.V3_LLM_RETRIES)||2,0),5);
