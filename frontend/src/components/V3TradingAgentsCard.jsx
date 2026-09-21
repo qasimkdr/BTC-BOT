@@ -20,6 +20,6 @@ export default function V3TradingAgentsCard(){
    <div className="lab-metric"><span>RSI 15m</span><strong>{Number(x.marketSnapshot?.m15?.rsi||0).toFixed(1)}</strong></div>
   </div>
   <div className="lab-idle"><div><strong>Final risk verdict</strong><p>{x.rationale||"No rationale yet."}</p></div></div>
-  <div className="lab-footnote"><span>Bull/Bear debate saved</span><span>Risk debate saved</span><span>Reflection memory saved</span><span>Shadow only</span></div></>}
+  <div className="lab-footnote"><span>Bull/Bear rounds: {data?.config?.maxDebateRounds||1}</span><span>Risk rounds: {data?.config?.maxRiskRounds||1}</span><span>Quick: {data?.config?.quickModel||"—"}</span><span>Deep: {data?.config?.deepModel||"—"}</span><span>Shadow only</span></div></>}
  </section>
 }
