@@ -3,6 +3,8 @@ import { invokeV3LLM } from "./llmClient.js";
 import { V3_PROMPTS } from "./prompts.js";
 import { buildBtcMarketContext } from "./btcMarketContext.js";
 import tradingAgentsV3Config from "./tradingAgentsConfig.js";
+import { getCryptoIntelligence } from "./cryptoIntelligence.js";
+import { getCryptoNewsContext } from "./newsContext.js";
 
 const safe = async (prompt,payload) => {
   try { return await invokeV3LLM(prompt,payload); }
@@ -11,13 +13,14 @@ const safe = async (prompt,payload) => {
 
 export async function runTradingAgentsShadow() {
   const marketSnapshot = await buildBtcMarketContext();
+  const [cryptoIntelligence, newsContext] = await Promise.all([getCryptoIntelligence(), getCryptoNewsContext()]);
   const prior = await V3Decision.find({ strategyVersion: tradingAgentsV3Config.strategyVersion, shadowOutcome: {$ne:null} })
     .sort({candleTime:-1}).limit(20).lean();
 
   const market = await safe(V3_PROMPTS.market,{marketSnapshot});
-  const sentiment = await safe(V3_PROMPTS.sentiment,{sentimentContext:"No external sentiment feed configured yet"});
-  const news = await safe(V3_PROMPTS.news,{newsContext:"No external news feed configured yet"});
-  const cryptoFundamentals = await safe(V3_PROMPTS.cryptoFundamentals,{derivativesContext:"No derivatives/network feed configured yet",marketSnapshot});
+  const sentiment = await safe(V3_PROMPTS.sentiment,{sentimentContext:cryptoIntelligence.sentiment,market24h:cryptoIntelligence.spot24h});
+  const news = await safe(V3_PROMPTS.news,{newsContext});
+  const cryptoFundamentals = await safe(V3_PROMPTS.cryptoFundamentals,{derivativesContext:cryptoIntelligence.derivatives,market24h:cryptoIntelligence.spot24h,marketSnapshot});
   const reports = {market,sentiment,news,cryptoFundamentals};
 
   const bull = await safe(V3_PROMPTS.bull,{reports});
@@ -40,7 +43,7 @@ export async function runTradingAgentsShadow() {
 
   return {
     strategyVersion: tradingAgentsV3Config.strategyVersion, symbol:"BTCUSDT", candleTime:marketSnapshot.candleTime,
-    mode:"SHADOW", marketSnapshot, analystReports:reports, investmentDebate, traderPlan, riskDebate,
+    mode:"SHADOW", marketSnapshot:{...marketSnapshot,cryptoIntelligence,newsContext}, analystReports:reports, investmentDebate, traderPlan, riskDebate,
     finalDecision:decision, confidence:Number(finalRiskManager?.confidence)||0,
     rationale:finalRiskManager?.rationale || "Risk manager did not approve a directional shadow decision.",
     reflection,
