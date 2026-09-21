@@ -10,6 +10,10 @@ export async function scanV3Shadow(){
  running=true;
  try{
   await settleV3ShadowOutcomes();
+  const latestCandle=await (await import("../../models/Candle15m.js")).default.findOne().sort({openTime:-1}).select("openTime").lean();
+  if(!latestCandle?.openTime) throw new Error("No 15m candle available for V3 scan");
+  const exists=await V3Decision.exists({strategyVersion:"v3-tradingagents-btc-shadow",candleTime:latestCandle.openTime});
+  if(exists){console.log(`🧠 V3 shadow: candle ${latestCandle.openTime} already evaluated`);return;}
   const state=await runTradingAgentsShadow();
   await V3Decision.findOneAndUpdate(
    {strategyVersion:state.strategyVersion,candleTime:state.candleTime},
