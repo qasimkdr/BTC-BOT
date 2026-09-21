@@ -9,6 +9,7 @@ import connectDB from "./config/db.js";
 import { initializeSocket } from "./socket/socketServer.js";
 
 import startMexcWebSocket from "./services/mexc/websocket.js";
+import { startV3ShadowScanner } from "./services/v3/shadowScanner.js";
 
 
 const PORT = process.env.PORT || 5000;
@@ -30,6 +31,7 @@ const startServer = async () => {
 
     // Binance WebSocket
     startMexcWebSocket();
+    startV3ShadowScanner();
 
     // Start Server
     server.listen(PORT, () => {

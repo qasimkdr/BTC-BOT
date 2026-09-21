@@ -45,9 +45,12 @@ app.use(
 
 
 import backtestRoutes from "./routes/backtestRoutes.js";
+import v3Routes from "./routes/v3Routes.js";
 app.use(
   "/api/backtest",
   backtestRoutes
 );
+
+app.use("/api/v3", v3Routes);
 
 export default app;

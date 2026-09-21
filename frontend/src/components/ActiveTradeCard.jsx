@@ -176,12 +176,14 @@ const ActiveTradeCard = () => {
 
             <p>
               Stop Loss:
-              <span className="ml-2 text-red-400">
-                {trade.stopLoss?.toFixed(
-                  2
-                )}
+              <span className={`ml-2 ${trade.tp1Locked ? "text-green-400" : "text-red-400"}`}>
+                {trade.stopLoss?.toFixed(2)}
               </span>
+              {trade.tp1Locked ? <span className="ml-2 text-green-400 font-bold">🔒 TP1 LOCKED</span> : null}
             </p>
+            {trade.tp1Locked && trade.originalStopLoss ? (
+              <p>Original SL:<span className="ml-2 text-zinc-400">{trade.originalStopLoss.toFixed(2)}</span></p>
+            ) : null}
 
             <p>
               TP1:
