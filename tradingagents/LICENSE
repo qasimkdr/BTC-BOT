@@ -1,4 +1,13 @@
-TradingAgents upstream is licensed under the Apache License 2.0.
-Upstream: https://github.com/TauricResearch/TradingAgents
+Apache License
+Version 2.0, January 2004
+http://www.apache.org/licenses/
 
-This integration adapts the TradingAgents workflow for BTC research. Preserve the upstream Apache-2.0 license and notices when copying/adapting upstream source files.
+Copyright notice: This directory contains an adaptation/integration inspired by
+TauricResearch/TradingAgents. Upstream: https://github.com/TauricResearch/TradingAgents
+
+The upstream work is licensed under the Apache License, Version 2.0.
+A complete copy of the Apache License 2.0 is available at:
+https://www.apache.org/licenses/LICENSE-2.0
+
+This BTC-BOT integration contains modifications for BTC/crypto market analysis,
+shadow execution, Node.js orchestration, and BTC-specific risk evaluation.
