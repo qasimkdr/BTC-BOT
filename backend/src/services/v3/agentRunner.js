@@ -40,14 +40,14 @@ export async function runTradingAgentsShadow() {
   const researchManager = await safe(V3_PROMPTS.researchManager,{reports,debate},"deep");
   const investmentDebate = {...debate,researchManager};
 
-  const traderPlan = await safe(V3_PROMPTS.trader,{marketSnapshot,researchManager,marketReport:market},"deep");
+  const traderPlan = await safe(V3_PROMPTS.trader,{marketSnapshot,researchManager,marketReport:market},"quick");
 
   const riskRounds=[];
   let priorRisk=null;
   for(let round=0; round<tradingAgentsV3Config.maxRiskRounds; round++){
-    const aggressive=await safe(V3_PROMPTS.aggressiveRisk,{traderPlan,reports,marketSnapshot,round:round+1,priorRisk},"deep");
-    const conservative=await safe(V3_PROMPTS.conservativeRisk,{traderPlan,reports,marketSnapshot,round:round+1,aggressive,priorRisk},"deep");
-    const neutral=await safe(V3_PROMPTS.neutralRisk,{traderPlan,reports,marketSnapshot,round:round+1,aggressive,conservative,priorRisk},"deep");
+    const aggressive=await safe(V3_PROMPTS.aggressiveRisk,{traderPlan,reports,marketSnapshot,round:round+1,priorRisk},"quick");
+    const conservative=await safe(V3_PROMPTS.conservativeRisk,{traderPlan,reports,marketSnapshot,round:round+1,aggressive,priorRisk},"quick");
+    const neutral=await safe(V3_PROMPTS.neutralRisk,{traderPlan,reports,marketSnapshot,round:round+1,aggressive,conservative,priorRisk},"quick");
     priorRisk={aggressive,conservative,neutral}; riskRounds.push(priorRisk);
   }
   const finalRiskManager = await safe(V3_PROMPTS.finalRisk,{traderPlan,riskDebate:riskRounds,marketSnapshot},"deep");
