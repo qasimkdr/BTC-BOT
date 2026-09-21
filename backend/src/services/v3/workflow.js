@@ -1,7 +1,7 @@
 import tradingAgentsV3Config from "./tradingAgentsConfig.js";
 
 export const WORKFLOW = Object.freeze({
-  analysts: ["market", "sentiment", "news", "cryptoFundamentals"],
+  analysts: ["market", "sentiment", "social", "news", "cryptoFundamentals"],
   investmentDebate: ["bullResearcher", "bearResearcher", "researchManager"],
   trader: ["trader"],
   riskDebate: ["aggressive", "conservative", "neutral", "finalRiskManager"],
