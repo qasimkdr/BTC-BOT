@@ -7,6 +7,7 @@ import { getCryptoIntelligence } from "./cryptoIntelligence.js";
 import { getCryptoNewsContext } from "./newsContext.js";
 import { getSimilarV3Memories } from "./similarMemory.js";
 import { buildV2EquivalentPlan } from "./executionPlan.js";
+import { getSocialContext } from "./socialContext.js";
 
 const safe = async (prompt,payload,tier="quick") => {
   try { return await invokeV3LLM(prompt,payload,tier); }
@@ -15,14 +16,15 @@ const safe = async (prompt,payload,tier="quick") => {
 
 export async function runTradingAgentsShadow() {
   const marketSnapshot = await buildBtcMarketContext();
-  const [cryptoIntelligence, newsContext] = await Promise.all([getCryptoIntelligence(), getCryptoNewsContext()]);
+  const [cryptoIntelligence, newsContext, socialContext] = await Promise.all([getCryptoIntelligence(), getCryptoNewsContext(), getSocialContext()]);
   const prior = await getSimilarV3Memories({...marketSnapshot,cryptoIntelligence}, 8);
 
   const market = await safe(V3_PROMPTS.market,{marketSnapshot});
   const sentiment = await safe(V3_PROMPTS.sentiment,{sentimentContext:cryptoIntelligence.sentiment,market24h:cryptoIntelligence.spot24h});
+  const social = await safe(V3_PROMPTS.social,{socialContext});
   const news = await safe(V3_PROMPTS.news,{newsContext});
   const cryptoFundamentals = await safe(V3_PROMPTS.cryptoFundamentals,{derivativesContext:cryptoIntelligence.derivatives,market24h:cryptoIntelligence.spot24h,marketSnapshot});
-  const reports = {market,sentiment,news,cryptoFundamentals};
+  const reports = {market,sentiment,social,news,cryptoFundamentals};
   if (market?.unavailable) throw new Error(`V3 market analyst unavailable: ${market.error}`);
 
   const debate = { bull: [], bear: [] };
@@ -56,7 +58,7 @@ export async function runTradingAgentsShadow() {
 
   return {
     strategyVersion: tradingAgentsV3Config.strategyVersion, symbol:"BTCUSDT", candleTime:marketSnapshot.candleTime,
-    mode:"SHADOW", marketSnapshot:{...marketSnapshot,cryptoIntelligence,newsContext}, analystReports:reports, investmentDebate, traderPlan, riskDebate,
+    mode:"SHADOW", marketSnapshot:{...marketSnapshot,cryptoIntelligence,newsContext,socialContext}, analystReports:reports, investmentDebate, traderPlan, riskDebate,
     finalDecision:decision, confidence:Number(finalRiskManager?.confidence)||0,
     rationale: requiredUnavailable ? "Critical V3 reasoning stage unavailable; forced SKIP." : (finalRiskManager?.rationale || "Risk manager did not approve a directional shadow decision."),
     shadowPlan,
