@@ -18,8 +18,10 @@ export async function runV3Shadow(req,res) {
 }
 
 export async function getV3Status(req,res) {
-  const latest = await V3Decision.findOne({ strategyVersion: tradingAgentsV3Config.strategyVersion }).sort({candleTime:-1}).lean();
-  res.json({ config: tradingAgentsV3Config, workflow: WORKFLOW, llmConfigured:Boolean(process.env.V3_LLM_API_KEY), latest });
+  try {
+    const latest = await V3Decision.findOne({ strategyVersion: tradingAgentsV3Config.strategyVersion }).sort({candleTime:-1}).lean();
+    res.json({ config: tradingAgentsV3Config, workflow: WORKFLOW, shadowEnabled:process.env.V3_SHADOW_ENABLED==="true", llmConfigured:Boolean(process.env.V3_LLM_API_KEY), latest });
+  } catch(error) { res.status(500).json({error:error.message}); }
 }
 
 export async function getV3PerformanceStats(req,res) {
@@ -27,7 +29,9 @@ export async function getV3PerformanceStats(req,res) {
 }
 
 export async function getV3Decisions(req,res) {
-  const limit = Math.min(Math.max(Number(req.query.limit)||50,1),250);
-  const decisions = await V3Decision.find({strategyVersion: tradingAgentsV3Config.strategyVersion}).sort({candleTime:-1}).limit(limit).lean();
-  res.json({ count: decisions.length, decisions });
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit)||50,1),250);
+    const decisions = await V3Decision.find({strategyVersion: tradingAgentsV3Config.strategyVersion}).sort({candleTime:-1}).limit(limit).lean();
+    res.json({ count: decisions.length, decisions });
+  } catch(error) { res.status(500).json({error:error.message}); }
 }
