@@ -1,5 +1,6 @@
 import V3Decision from "../../models/V3Decision.js";
 import { runTradingAgentsShadow } from "./agentRunner.js";
+import { settleV3ShadowOutcomes } from "./shadowOutcome.js";
 
 let timer=null, running=false;
 const INTERVAL_MS=Math.max(Number(process.env.V3_SCAN_INTERVAL_MS)||15*60*1000,60*1000);
@@ -8,6 +9,7 @@ export async function scanV3Shadow(){
  if(running) return;
  running=true;
  try{
+  await settleV3ShadowOutcomes();
   const state=await runTradingAgentsShadow();
   await V3Decision.findOneAndUpdate(
    {strategyVersion:state.strategyVersion,candleTime:state.candleTime},
