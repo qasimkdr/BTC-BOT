@@ -26,6 +26,9 @@ export async function buildBtcMarketContext() {
     Candle4h.find().sort({openTime:-1}).limit(250).lean(),
   ]);
   const context = { m15: frame(m15), h1: frame(h1), h4: frame(h4) };
+  if (!context.m15 || m15.length < 200) throw new Error("V3 requires at least 200 stored 15m candles");
+  if (!context.h1 || h1.length < 200) throw new Error("V3 requires at least 200 stored 1h candles");
+  if (!context.h4 || h4.length < 200) throw new Error("V3 requires at least 200 stored 4h candles");
   context.regime = context.h4?.trend === context.h1?.trend ? context.h1?.trend : "MIXED";
   context.candleTime = context.m15?.openTime || Date.now();
   return context;
